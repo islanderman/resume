@@ -1,0 +1,118 @@
+name: PRB
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# A newer push supersedes a running PR check; main runs always finish so every merge is validated.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash # adds pipefail to the implicit `bash -e`
+
+jobs:
+  # Branch protection requires this check by name: renaming the job removes the merge gate.
+  prb:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PRE_COMMIT_VERSION: '4.7.0'
+      # Same release as the gitleaks hook rev, so CI and local runs apply the same rules.
+      # The SHA-256 comes from the release's gitleaks_8.30.0_checksums.txt.
+      GITLEAKS_VERSION: '8.30.0'
+      GITLEAKS_SHA256: '79a3ab579b53f71efd634f3aaf7e04a0fa0cf206b7ed434638d1547a2470a66e'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the secret scan walks full history
+          persist-credentials: false
+
+      - name: Set up Python
+        id: py
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.15'
+
+      - name: Install pre-commit
+        run: python -m pip install --disable-pip-version-check "pre-commit==${PRE_COMMIT_VERSION}"
+
+      - name: Cache pre-commit environments
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ steps.py.outputs.python-version }}-${{ env.PRE_COMMIT_VERSION }}-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Lint and format (pre-commit, all files)
+        run: make check
+
+      - name: Unit tests
+        run: make test
+
+      # The gitleaks hook scans only staged changes, so on a clean CI checkout it scans nothing.
+      - name: Secret scan (full history)
+        run: |
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl --fail --silent --show-error --location --retry 3 \
+            --output "${RUNNER_TEMP}/${archive}" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${archive}"
+          echo "${GITLEAKS_SHA256}  ${RUNNER_TEMP}/${archive}" | sha256sum --check --strict
+          tar --extract --gzip --file "${RUNNER_TEMP}/${archive}" --directory "${RUNNER_TEMP}" gitleaks
+          "${RUNNER_TEMP}/gitleaks" git --no-banner --redact --verbose .
+
+  # Rollback: re-run this job on the last good run, or use the Pages dashboard's rollback.
+  deploy:
+    needs: prb
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment:
+      name: production
+      url: https://resume.chenyang.us
+    # Never cancel a running deploy; only the newest pending one is kept, so the latest commit
+    # lands last.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # wrangler's engines field requires Node >= 22.
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+
+      # No secrets in env here: install scripts of transitive packages must never see the token.
+      # The lockfile fixes every transitive version, and --ignore-scripts skips their postinstalls.
+      - name: Install wrangler from the lockfile
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      # The token exists only in this step, and only the pinned local binary reads it.
+      # The output file is wrangler's stable interface for the deployment URL; stdout is not.
+      - name: Deploy to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_OUTPUT_FILE_DIRECTORY: ${{ runner.temp }}/wrangler-output
+        run: ./node_modules/.bin/wrangler pages deploy public --project-name=resume --branch=main
+
+      - name: Smoke test deployment
+        env:
+          WRANGLER_OUTPUT_FILE_DIRECTORY: ${{ runner.temp }}/wrangler-output
+        run: |
+          url="$(jq -r 'select(.type == "pages-deploy-detailed") | .url // empty' \
+            "${WRANGLER_OUTPUT_FILE_DIRECTORY}"/*.json | tail -n 1)"
+          [ -n "${url}" ] || { echo 'wrangler reported no deployment URL' >&2; exit 1; }
+          curl --fail --silent --show-error --location --retry 5 --retry-delay 5 \
+            --retry-all-errors --max-time 30 --output /dev/null "${url}"
