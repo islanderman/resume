@@ -1,0 +1,241 @@
+/* resume.css */
+/* Base Styles (Mobile-First) */
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #333;
+    padding: 15px;
+    background-color: #fff;
+}
+
+.container {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.title {
+    font-size: 2em;
+    font-weight: 300;
+    color: #000;
+    margin-bottom: 5px;
+}
+
+h2 {
+    font-size: 1em;
+    font-weight: 400;
+    color: #555;
+}
+
+.contact {
+    font-size: 0.85em;
+    margin-top: 10px;
+}
+
+.contact a {
+    color: #0066cc;
+    text-decoration: none;
+}
+
+.contact a:hover {
+    text-decoration: underline;
+}
+
+h3 {
+    font-size: 1.3em;
+    font-weight: 700;
+    margin: 20px 0 10px;
+    color: #000;
+}
+
+h4 {
+    font-size: 1em;
+    font-weight: 600;
+    margin-top: 15px;
+    display: flex;
+    align-items: center;
+}
+
+.company-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+}
+
+p {
+    margin-bottom: 10px;
+}
+
+.job p:first-of-type {
+    font-style: italic;
+    color: #666;
+}
+
+.job ul {
+    margin: 6px 0 12px 0;
+    padding: 0;
+    list-style-type: disc;
+    list-style-position: outside;
+    padding-left: 1.5em;
+}
+
+.job li {
+    margin-bottom: 5px;
+    padding-left: 0.5em;
+    line-height: 1.45;
+    color: #444;
+}
+
+.job li:last-child {
+    margin-bottom: 0;
+}
+
+/* Desktop Adjustments */
+@media (min-width: 721px) {
+    body {
+        font-size: 16px;
+        padding: 20px;
+    }
+
+    .container {
+        max-width: 800px;
+    }
+
+    .title {
+        font-size: 2.5em;
+    }
+
+    h2 {
+        font-size: 1.2em;
+    }
+
+    h3 {
+        font-size: 1.5em;
+    }
+
+    h4 {
+        font-size: 1.1em;
+    }
+
+    .company-icon {
+        width: 24px;
+        height: 24px;
+        margin-right: 10px;
+    }
+
+    .contact {
+        font-size: 0.9em;
+    }
+
+    .job ul {
+        padding-left: 2em;
+        margin-left: 0;
+    }
+
+    .job li {
+        padding-left: 0.5em;
+    }
+}
+
+/* Print Styles */
+@page {
+    margin: 0.35in 0.45in;
+}
+
+@media print {
+    body {
+        padding: 0;
+        font-size: 9.5pt;
+        line-height: 1.3;
+        color: #000;
+    }
+
+    .container {
+        max-width: 100%;
+    }
+
+    header {
+        margin-bottom: 4px;
+    }
+
+    .title {
+        font-size: 1.8em;
+        margin-bottom: 1px;
+    }
+
+    h2 {
+        font-size: 1em;
+    }
+
+    .contact {
+        margin-top: 2px;
+        font-size: 0.85em;
+    }
+
+    a {
+        color: #000;
+        text-decoration: none;
+    }
+
+    .contact a[href^="http"]::after {
+        content: none;
+    }
+
+    .contact a[href^="mailto"]::after {
+        content: none;
+    }
+
+    .company-icon {
+        width: 16px;
+        height: 16px;
+        margin-right: 6px;
+        filter: grayscale(100%);
+    }
+
+    h3 {
+        font-size: 1.2em;
+        margin: 6px 0 2px;
+        break-after: avoid;
+    }
+
+    h4 {
+        font-size: 0.95em;
+        margin-top: 5px;
+        break-after: avoid;
+    }
+
+    p {
+        margin-bottom: 2px;
+    }
+
+    .job ul {
+        margin: 2px 0 4px 24px;
+    }
+
+    .job li {
+        margin-bottom: 1px;
+        padding-left: 0.3em;
+        color: #000;
+    }
+
+    section {
+        break-inside: auto;
+    }
+
+    .job {
+        break-inside: avoid;
+    }
+}

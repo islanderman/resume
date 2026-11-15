@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+<!-- source: https://cdn.jsdelivr.net/npm/@iconify-json/thesvg@1.2.15/icons.json (walmart, Spark Yellow fill) | license: MIT, (c) thesvg.org
+
+MIT License
+
+Copyright (c) 2025 thesvg.org
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->
+<path fill="#ffc220" d="M16.016 11.023c.458-.094 4.514-1.952 4.876-2.161.827-.478 1.11-1.535.633-2.361s-1.534-1.11-2.361-.633c-.362.209-4 2.793-4.311 3.143-.356.401-.418.974-.154 1.431.264.456.791.69 1.317.581m4.876 4.115c-.362-.209-4.418-2.067-4.876-2.161-.526-.109-1.053.125-1.317.581-.264.457-.202 1.03.154 1.431.311.35 3.949 2.934 4.311 3.143.827.477 1.884.194 2.361-.633s.194-1.883-.633-2.361M12 15.117c-.527 0-.993.34-1.162.849-.148.444-.566 4.886-.566 5.304 0 .954.774 1.728 1.728 1.728s1.728-.774 1.728-1.728c0-.418-.418-4.86-.566-5.304-.169-.509-.635-.849-1.162-.849m-4.015-2.14c-.459.094-4.515 1.952-4.877 2.161-.827.478-1.11 1.535-.633 2.361s1.534 1.11 2.361.633c.362-.209 4-2.793 4.311-3.143.356-.401.418-.974.154-1.431s-.791-.69-1.316-.581M4.836 5.868c-.827-.477-1.883-.194-2.361.633-.477.826-.194 1.883.633 2.361.362.209 4.418 2.067 4.876 2.161.526.109 1.053-.125 1.317-.581s.202-1.03-.154-1.431c-.311-.35-3.949-2.934-4.311-3.143M12 1.002c-.954 0-1.728.774-1.728 1.728 0 .418.418 4.86.566 5.304.169.509.635.849 1.162.849s.993-.34 1.162-.849c.148-.444.566-4.886.566-5.304 0-.954-.774-1.728-1.728-1.728"/>
+</svg>

@@ -1,0 +1,48 @@
+# OS cruft
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Editors and IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Dependencies and virtualenvs
+node_modules/
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Wrangler local state and dev secrets
+.wrangler/
+.dev.vars*
+
+# Env files can hold secrets; only the template is tracked.
+.env*
+!.env.example
+
+# Logs, coverage, caches
+*.log
+logs/
+coverage/
+.coverage
+htmlcov/
+.cache/
+
+# Local agent state
+.claude/

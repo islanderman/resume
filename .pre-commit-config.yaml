@@ -1,0 +1,81 @@
+# Golden captures of the live site must stay byte-identical, so no hook may rewrite or flag them.
+exclude: ^tests/fixtures/
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      # File system security and integrity
+      - id: check-added-large-files
+        # Without --enforce-all only staged additions are checked, and CI has none.
+        args: ['--maxkb=1000', '--enforce-all']
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+      - id: check-symlinks
+      - id: check-merge-conflict
+        # Without --assume-in-merge the hook does nothing unless a merge is underway, never in CI.
+        args: ['--assume-in-merge']
+      - id: detect-private-key
+
+      # File format validation (for configs and data)
+      - id: check-json
+      - id: check-toml
+      - id: check-yaml
+        args: ['--allow-multiple-documents']
+
+      # File formatting and cleanup
+      - id: end-of-file-fixer
+        exclude: \.(svg|png|jpe?g|gif|ico|pdf)$
+      - id: fix-byte-order-marker
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+      - id: trailing-whitespace
+        args: ['--markdown-linebreak-ext=md']
+
+  # Markdown linting and formatting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.48.0
+    hooks:
+      - id: markdownlint
+        # The trailing '--' ends the variadic --disable list. Without it the file names are read as
+        # rule names, nothing is linted, and the hook always passes.
+        args: ['--fix', '--disable', 'MD013', 'MD033', 'MD041', '--']
+        # MD013: Line length (disabled - code blocks can be long)
+        # MD033: Inline HTML (disabled - needed for advanced formatting)
+        # MD041: First line in file should be top-level heading (disabled)
+
+  # HTML, CSS, JS, JSON, YAML and Markdown formatting
+  # Local hook, exact npm pin: pre-commit/mirrors-prettier is archived and stuck on old releases.
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier
+        entry: prettier --write --list-different --ignore-unknown
+        language: node
+        additional_dependencies: ['prettier@3.10.1']
+        types_or: [html, css, javascript, json, yaml, markdown]
+
+  # Spell checking (with custom dictionary support)
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.2
+    hooks:
+      - id: codespell
+        args:
+          [
+            '--ignore-words-list=ultrathink,frontend,backend,parallelization,testng,aks,ACI,usre,iterm,bloc,afterAll,nin,brin,BRIN,optin,OPTIN',
+          ]
+        exclude: ^(\.git/|\.venv/|node_modules/)
+
+  # Shell script linting
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+        args: ['--severity=warning']
+
+  # Secrets detection
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.0 # v8.21.0
+    hooks:
+      - id: gitleaks

@@ -1,0 +1,13 @@
+{
+  "_comment": "External hosts public/index.html may load resources from. Seeded from the mirrored original (edge-injected Cloudflare Web Analytics) plus Google Analytics. A '*.' entry matches subdomains only. Fonts are self-hosted, so no font hosts.",
+  "hosts": [
+    "static.cloudflareinsights.com",
+    "cloudflareinsights.com",
+    "www.googletagmanager.com",
+    "*.googletagmanager.com",
+    "www.google-analytics.com",
+    "*.google-analytics.com",
+    "analytics.google.com",
+    "*.analytics.google.com"
+  ]
+}

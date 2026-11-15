@@ -1,0 +1,19 @@
+# LF in the repo and on every checkout, so hooks and CI never see CRLF churn.
+* text=auto eol=lf
+
+# Never diff, merge, or rewrite line endings in binaries.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.zip binary
+*.gz binary
