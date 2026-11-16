@@ -111,5 +111,17 @@ class NotFoundPageTest(unittest.TestCase):
         report(self, "404.html inline scripts", inline_script_problems(NOT_FOUND))
 
 
+class ColorSchemeTest(unittest.TestCase):
+    def test_pages_opt_out_of_forced_dark_modes(self):
+        # The design is light-only; "only" stops Android WebView and Chrome auto-dark from recoloring
+        # the page and its brand logos, which a bare "light" would still allow.
+        problems = []
+        for path in (INDEX, NOT_FOUND):
+            value = (htmlfacts.page(path).meta("name", "color-scheme") or "").split()
+            if sorted(value) != ["light", "only"]:
+                problems.append(f"{rel(path)}: color-scheme is {value}, expected 'only light'")
+        report(self, "forced dark mode opt-out", problems)
+
+
 if __name__ == "__main__":
     unittest.main()
