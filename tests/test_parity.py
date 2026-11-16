@@ -1,7 +1,8 @@
 """Parity of public/ with the mirrored original; edge-injected Cloudflare code removed at capture.
 Wording follows the owner-approved copy edit of 2026-11-15 (fixtures/approved_copy.txt); links,
-contact details, titles, companies, places, dates, metrics, technologies and JSON-LD still match
-the original."""
+contact details, titles, companies, places, dates, metrics and technologies still match the
+original. The SEO rewrite of 2026-11-16 replaced the head metadata, sitemap.xml and llms.txt on
+purpose; tests/test_seo.py pins those now."""
 
 import difflib
 import json
@@ -14,6 +15,8 @@ from resume_kit.common import FIXTURES, INDEX, PUBLIC, fixture_text, read_text, 
 ORIGINAL = FIXTURES / "original.html"
 SECTIONS = ("Professional Summary", "Work Experience", "Advisory Roles", "Education")
 ROOT_FILES = ("robots.txt", "sitemap.xml", "llms.txt")
+# robots.txt keeps its crawler rules byte for byte; the other two were rewritten for SEO.
+PARITY_ROOT_FILES = ("robots.txt",)
 MISSING_HINT = "parity fixture; copy the mirrored original page into tests/fixtures/"
 # The copy changed on purpose, so text parity is against this fixture, not original.html. It holds
 # one block per line; regenerate it in the same commit as an approved wording change, so its diff
@@ -40,18 +43,9 @@ FIGURE = re.compile(
     r"(?<![\w.,])\d+(?:[.,]\d+)*(?:ms|x|M)?\+?"
     r"|(?i:\b(?:hundreds|thousands|millions|billions)\b)"
 )
-# The one intended JSON-LD edit (key: (original, port)): the 16-48 px favicon.ico is too small for
-# structured data, so "image" now names the 180 px apple-touch-icon.png.
-JSON_LD_CHANGES = {
-    "image": (
-        "https://resume.chenyang.us/favicon.ico",
-        "https://resume.chenyang.us/apple-touch-icon.png",
-    )
-}
-# The meta and JSON-LD descriptions were synced with the rewritten summary on purpose, so head
-# parity skips them and test_descriptions_mirror_the_summary pins them instead.
-SYNCED = ("description",)
-META_DESCRIPTION_LEAD = "Resume of Jerry Yang, "
+# The SEO rewrite replaced these head entries on purpose, so head parity skips them; only the
+# author and the canonical URL still match the original.
+REWRITTEN = ("title", "description", "open graph", "twitter", "json-ld")
 MONTHS = {m: i for i, m in enumerate("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(), 1)}
 DATE = r"(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) )?\d{4}"
 DATE_RANGE = re.compile(rf"({DATE})\s*[-–—]\s*({DATE}|Present)")
@@ -161,17 +155,6 @@ def date_ranges(path):
     return [m.groups() if m else None for m in (DATE_RANGE.search(j) for j in jobs(path))]
 
 
-def summary(path):
-    """Text of the paragraph in the section that #summary labels, or None."""
-    found = texts(
-        path,
-        lambda tag, attrs, parents: tag == "p"
-        and bool(parents)
-        and parents[-1][1].get("aria-labelledby") == "summary",
-    )
-    return found[0] if found else None
-
-
 def figures(text):
     """Metrics `text` states, as a set: digits with a unit, and magnitude words in lower case."""
     return {f if f[0].isdigit() else f.lower() for f in FIGURE.findall(text)}
@@ -244,16 +227,6 @@ class OriginalFixtureTest(unittest.TestCase):
     def test_original_has_no_site_owned_tracker(self):
         # The only analytics on the live page was Cloudflare's edge beacon, never origin code.
         self.assertEqual(trackers.provider_scripts(original(), keep_cwa=True), [])
-
-    def test_intended_json_ld_changes_name_the_original_values(self):
-        # A stale entry would silently stop pinning that key, so each old value must be in the fixture.
-        blocks = [b for b in json_ld(original()) if isinstance(b, dict)]
-        problems = [
-            f"JSON_LD_CHANGES['{key}'] expects {old!r}; the fixture has {[b.get(key) for b in blocks]}"
-            for key, (old, _) in JSON_LD_CHANGES.items()
-            if not any(b.get(key) == old for b in blocks)
-        ]
-        report(self, "JSON_LD_CHANGES out of step with original.html", problems)
 
     def test_curated_names_are_all_named_in_the_original(self):
         # A name the original never uses pins nothing, so a typo in NAMES would pass unnoticed.
@@ -353,34 +326,14 @@ class ContentParityTest(unittest.TestCase):
         report(self, "tracker scripts dropped or altered", problems)
 
     def test_head_metadata_is_preserved(self):
-        # Covers the JSON-LD structure too: every key and value but the intended edits must match.
-        expected = head_signature(original(), JSON_LD_CHANGES, skip=SYNCED)
-        actual = head_signature(htmlfacts.page(INDEX), skip=SYNCED)
+        expected = head_signature(original(), skip=REWRITTEN)
+        actual = head_signature(htmlfacts.page(INDEX), skip=REWRITTEN)
         problems = [
             f"{key}: original {expected[key]!r}, port {actual[key]!r}"
             for key in expected
             if expected[key] != actual[key]
         ]
         report(self, "SEO and sharing metadata changed", problems)
-
-    def test_descriptions_mirror_the_summary(self):
-        text = summary(INDEX)
-        facts = htmlfacts.page(INDEX)
-        blocks = [b for b in json_ld(facts) if isinstance(b, dict)]
-        problems = [] if text else ["no <p> in the section that #summary labels"]
-        meta = facts.meta("name", "description")
-        if text and meta != META_DESCRIPTION_LEAD + text:
-            problems.append(
-                f"<meta name=description> is {meta!r}, not {META_DESCRIPTION_LEAD!r} + summary"
-            )
-        if not blocks:
-            problems.append("no JSON-LD object to carry the description")
-        problems += [
-            f"JSON-LD description is {b.get('description')!r}, not the summary"
-            for b in blocks
-            if text and b.get("description") != text
-        ]
-        report(self, "descriptions out of step with the summary", problems)
 
     def test_port_carries_no_cloudflare_edge_artifacts(self):
         # Pages does not run Email Obfuscation, so a pasted data-cfemail link would die there.
@@ -416,6 +369,7 @@ class DateMarkupTest(unittest.TestCase):
 
 
 LASTMOD = re.compile(r"(<lastmod>)\s*([^<]*?)\s*(</lastmod>)")
+UPDATED = re.compile(r"^(#.*Last updated:\s*)\S+")
 W3C_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2}))?$")
 
 
@@ -425,24 +379,30 @@ def _lines(text, sitemap=False):
     return [LASTMOD.sub(r"\1DATE\3", line) for line in lines] if sitemap else lines
 
 
+def robots_lines(text):
+    """_lines() with the date of robots.txt's 'Last updated:' comment masked."""
+    return [UPDATED.sub(r"\1DATE", line) for line in _lines(text)]
+
+
 class RootFilesParityTest(unittest.TestCase):
     """robots.txt, sitemap.xml and llms.txt are origin-served today and must ship in public/."""
 
-    def test_root_files_are_unchanged(self):
-        # sitemap.xml may carry a new <lastmod> date; every other byte must match.
+    def test_root_files_ship(self):
+        problems = [
+            f"{rel(PUBLIC / name)} is missing or empty; the live site serves /{name}"
+            for name in ROOT_FILES
+            if not (PUBLIC / name).is_file() or not (PUBLIC / name).read_bytes().strip()
+        ]
+        report(self, "root files", problems)
+
+    def test_robots_rules_are_unchanged(self):
+        # Only the 'Last updated:' date may change; every crawler rule must match the original.
         problems = []
-        for name in ROOT_FILES:
+        for name in PARITY_ROOT_FILES:
             expected = fixture_text(f"original_{name}", MISSING_HINT)
             actual = read_text(PUBLIC / name, f"the live site serves /{name}; the port must too")
-            sitemap = name == "sitemap.xml"
-            if _lines(expected, sitemap) != _lines(actual, sitemap):
+            if robots_lines(expected) != robots_lines(actual):
                 problems.append(f"{rel(PUBLIC / name)} differs from tests/fixtures/original_{name}")
-            if sitemap:
-                problems += [
-                    f"<lastmod> '{d}' is not a W3C date"
-                    for _, d, _ in LASTMOD.findall(actual)
-                    if not W3C_DATE.match(d)
-                ]
         report(self, "root files changed", problems)
 
 

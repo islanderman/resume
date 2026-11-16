@@ -610,6 +610,13 @@ class PageHelperTest(unittest.TestCase):
     def test_root_file_comparison_ignores_line_endings_and_trailing_space(self):
         self.assertEqual(parity._lines("a \r\nb\r\n\r\n"), parity._lines("a\nb"))
 
+    def test_robots_comparison_masks_only_the_last_updated_date(self):
+        old = "# Crawlers welcome. Last updated: 2026-05-27\nUser-agent: *\nAllow: /"
+        new = old.replace("2026-05-27", "2026-11-16")
+        self.assertEqual(parity.robots_lines(old), parity.robots_lines(new))
+        changed = new.replace("Allow: /", "Disallow: /")
+        self.assertNotEqual(parity.robots_lines(old), parity.robots_lines(changed))
+
     def test_head_signature_reads_json_ld_and_social_tags(self):
         html = (
             '<title> T </title><meta name="description" content="d"><link rel="canonical" href="https://a.test/">'
