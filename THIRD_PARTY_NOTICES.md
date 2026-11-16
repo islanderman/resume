@@ -1,8 +1,9 @@
 # Third-Party Notices
 
-The resume shows the logos of the employers and schools it lists. Each icon below names its source,
-pinned to the version that was fetched, and its license. The license texts that require attribution
-follow in full.
+The resume shows the logos of the employers and schools it lists, and sets its text in one
+self-hosted font. Each icon and the font below name their source, pinned to the version that was
+fetched, and their license. The icon license texts that require attribution follow in full; the
+font's license ships next to the font file.
 
 Each slug is `public/img/icons/<slug>.svg`, except `nyu` and `stonybrook`: they are 96×96 PNG
 fallbacks, because no usable vector source was found. `favicon` is `public/favicon.ico` and
@@ -26,6 +27,18 @@ fallbacks, because no usable vector source was found. `favicon` is `public/favic
 | yahoo            | <https://cdn.jsdelivr.net/npm/simple-icons@9.21.0/icons/yahoo.svg>                                             | [CC0-1.0](#cc0-sources)                           |
 | favicon          | <https://resume.chenyang.us/favicon.ico>, same source as `nyu`                                                 | Not openly licensed; New York University mark     |
 | apple-touch-icon | <https://resume.chenyang.us/favicon.ico>, same source as `nyu`                                                 | Not openly licensed; New York University mark     |
+
+## Fonts
+
+| File                                                 | Source, pinned version                                                                                              | License                                            |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `public/fonts/source-sans-3-latin-wght-normal.woff2` | <https://cdn.jsdelivr.net/npm/@fontsource-variable/source-sans-3@5.3.1/files/source-sans-3-latin-wght-normal.woff2> | [OFL-1.1](#sil-open-font-license-11-source-sans-3) |
+
+Source Sans 3 by Adobe, font version 3.052: the Latin roman subset with the `wght` axis (200–900),
+from the npm package `@fontsource-variable/source-sans-3@5.3.1`. The file ships exactly as
+published: 28,872 bytes, SHA-256
+`19143dca075972bc84e3fd9eab7416dd40cc565dccb2435a044bdfabe060c7d5`. It is never re-subset or
+renamed, because a modified version may not carry the reserved font name "Source".
 
 ## CC0 sources
 
@@ -100,6 +113,18 @@ CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
 IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
 ```
+
+## SIL Open Font License 1.1 (Source Sans 3)
+
+Covers `public/fonts/source-sans-3-latin-wght-normal.woff2`. Upstream project:
+<https://github.com/adobe-fonts/source-sans>. The copyright notice in the font file reads:
+
+```text
+© 2023 Adobe (http://www.adobe.com/), with Reserved Font Name ‘Source’
+```
+
+That notice and the full license text ship next to the font as `public/fonts/OFL.txt`, served at
+<https://resume.chenyang.us/fonts/OFL.txt>.
 
 ## Trademarks
 

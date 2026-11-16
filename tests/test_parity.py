@@ -35,8 +35,10 @@ JSON_LD_CHANGES = {
 # parity skips them and test_descriptions_mirror_the_summary pins them instead.
 SYNCED = ("description",)
 META_DESCRIPTION_LEAD = "Resume of Jerry Yang, "
+MONTHS = {m: i for i, m in enumerate("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(), 1)}
 DATE = r"(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) )?\d{4}"
 DATE_RANGE = re.compile(rf"({DATE})\s*[-–—]\s*({DATE}|Present)")
+SPACED_EN_DASH_RANGE = re.compile(rf"^{DATE} – (?:{DATE}|Present)$")
 
 
 def original(edge=True):
@@ -151,6 +153,12 @@ def summary(path):
         and parents[-1][1].get("aria-labelledby") == "summary",
     )
     return found[0] if found else None
+
+
+def machine_date(text):
+    """The <time datetime> value a visible date needs: 'May 2019' -> '2019-05', '2024' -> '2024'."""
+    month, _, year = text.rpartition(" ")
+    return f"{year}-{MONTHS[month]:02d}" if month in MONTHS else year
 
 
 class OriginalFixtureTest(unittest.TestCase):
@@ -309,6 +317,32 @@ class ContentParityTest(unittest.TestCase):
         report(
             self, "edge-injected markup copied into the port", htmlfacts.page(INDEX).all_artifacts()
         )
+
+
+class DateMarkupTest(unittest.TestCase):
+    """Every range is '<date> – <date or Present>' with an en dash, each date in a <time>."""
+
+    def test_date_ranges_use_spaced_en_dashes_and_time_elements(self):
+        ranges = texts(INDEX, with_class("dates"))
+        times = elements.pick_in(INDEX, lambda tag, attrs, parents: tag == "time")
+        problems = [] if ranges else ["no .dates element"]
+        if len(ranges) != len(jobs(INDEX)):
+            problems.append(f"{len(ranges)} .dates for {len(jobs(INDEX))} jobs")
+        problems += [
+            f"'{r}' is not two dates joined by ' – ' (U+2013 between spaces)"
+            for r in ranges
+            if not SPACED_EN_DASH_RANGE.match(r)
+        ]
+        written = [d for r in ranges for d in re.findall(DATE, r)]
+        if [t.text for t in times] != written:
+            problems.append(f"<time> texts {[t.text for t in times]} differ from dates {written}")
+        problems += [
+            f"<time datetime={t.attrs.get('datetime')!r}>{t.text}</time>: "
+            f"expected {machine_date(t.text)!r}"
+            for t in times
+            if t.attrs.get("datetime") != machine_date(t.text)
+        ]
+        report(self, "date markup", problems)
 
 
 LASTMOD = re.compile(r"(<lastmod>)\s*([^<]*?)\s*(</lastmod>)")

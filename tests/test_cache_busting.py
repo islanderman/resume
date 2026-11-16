@@ -1,19 +1,21 @@
-"""Cache busting: files in public/css, js and img are cached for a year, so every URL to one carries
-?v=<first 8 hex of its sha256>; a changed file without a new ?v= fails here instead of going stale."""
+"""Cache busting: files in public/css, js, img and fonts are cached for a year, so every URL to one
+carries ?v=<first 8 hex of its sha256>; a changed file without a new ?v= fails here, not stale. A
+font preload must name its @font-face URL exactly, or the browser fetches the font twice."""
 
 import hashlib
 import tempfile
 import unittest
 from pathlib import Path
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, urljoin, urlsplit
 
 from resume_kit import cssscan, htmlfacts, refs
 from resume_kit import headers as hdr
-from resume_kit.common import HEADERS_FILE, PUBLIC, public_files, read_text, rel, report
+from resume_kit.common import HEADERS_FILE, INDEX, PUBLIC, public_files, read_text, rel, report
 
 IMMUTABLE = "public, max-age=31536000, immutable"
-FOLDERS = ("css", "js", "img")
+FOLDERS = ("css", "js", "img", "fonts")
 VERSION_LEN = 8
+SITE = "https://resume.chenyang.us/"
 
 
 def version_of(path):
@@ -25,6 +27,23 @@ def in_immutable_folder(path):
     return len(parts) > 1 and parts[0] in FOLDERS
 
 
+def served_url(path):
+    """The URL a file in public/ is served at: the base its relative references resolve against."""
+    return urljoin(SITE, Path(path).resolve().relative_to(PUBLIC.resolve()).as_posix())
+
+
+def stylesheet_references():
+    """(where, url, file) for every local url() in public/ stylesheets that resolves to a file."""
+    found = []
+    for sheet in public_files(".css"):
+        for url in cssscan.urls(read_text(sheet, "stylesheet")):
+            if refs.kind(url) == "local":
+                target, _ = refs.resolve(url, sheet.parent)
+                if target is not None:
+                    found.append((f"{rel(sheet)} url()", url, target))
+    return found
+
+
 def references():
     """(where, url, file) for every local HTML or CSS URL in public/ that resolves to a file."""
     found = []
@@ -34,13 +53,7 @@ def references():
                 target, _ = refs.resolve(item.value, page.parent)
                 if target is not None:
                     found.append((f"{rel(page)} {item.where}", item.value, target))
-    for sheet in public_files(".css"):
-        for url in cssscan.urls(read_text(sheet, "stylesheet")):
-            if refs.kind(url) == "local":
-                target, _ = refs.resolve(url, sheet.parent)
-                if target is not None:
-                    found.append((f"{rel(sheet)} url()", url, target))
-    return found
+    return found + stylesheet_references()
 
 
 def version_problems(found):
@@ -56,6 +69,48 @@ def version_problems(found):
     return problems
 
 
+def font_faces():
+    """{absolute URL: stylesheet} for every local url() inside an @font-face block in public/."""
+    faces = {}
+    for sheet in public_files(".css"):
+        for body in cssscan.font_face_bodies(read_text(sheet, "stylesheet")):
+            for url in cssscan.urls(body):
+                if refs.kind(url) == "local":
+                    faces[urljoin(served_url(sheet), url)] = rel(sheet)
+    return faces
+
+
+def font_preloads():
+    """(page, attrs, absolute URL) for every <link rel="preload" as="font"> in public/ pages."""
+    found = []
+    for page in public_files(".html", ".htm"):
+        for attrs in htmlfacts.page(page).links:
+            rels = set(attrs.get("rel", "").lower().split())
+            if "preload" in rels and attrs.get("as", "").strip().lower() == "font":
+                href = attrs.get("href", "").strip()
+                found.append((rel(page), attrs, urljoin(served_url(page), href)))
+    return found
+
+
+def preload_problems(preloads, faces):
+    """Font preloads an @font-face fetch cannot reuse; the browser then downloads the font again."""
+    problems = []
+    for where, attrs, url in preloads:
+        if url not in faces:
+            problems.append(
+                f"{where} preloads {url}, which no @font-face src resolves to byte for byte "
+                f"(they name {sorted(faces) or 'nothing'})"
+            )
+        if attrs.get("crossorigin") is None or attrs["crossorigin"].strip().lower() not in (
+            "",
+            "anonymous",
+        ):
+            problems.append(f"{where}: fonts load in CORS mode, so the preload needs crossorigin")
+        if attrs.get("type", "").strip().lower() != "font/woff2":
+            problems.append(f"{where}: preload type {attrs.get('type')!r} is not 'font/woff2'")
+    return problems
+
+
 def header_rules():
     text = read_text(HEADERS_FILE, "Cloudflare Pages reads headers from public/_headers")
     return [r for r in hdr.parse(text).rules if r.host is None]
@@ -65,8 +120,14 @@ class CacheBustingTest(unittest.TestCase):
     def test_every_url_into_an_immutable_folder_carries_its_file_hash(self):
         found = [f for f in references() if in_immutable_folder(f[2])]
         if not found:
-            self.fail("no page references a file in public/css, public/js or public/img")
+            self.fail("no page references a file in public/css, js, img or fonts")
         report(self, "missing or stale ?v= cache busters", version_problems(found))
+
+    def test_every_stylesheet_url_carries_its_file_hash(self):
+        # Any folder, not just the immutable ones: a url() is fetched by the cached stylesheet, so a
+        # stale one keeps serving the old file for as long as that stylesheet stays cached.
+        problems = version_problems(stylesheet_references())
+        report(self, "stylesheet url() without a fresh ?v=", problems)
 
     def test_immutable_folders_are_cached_for_a_year(self):
         rules = {r.pattern: r for r in header_rules()}
@@ -89,6 +150,15 @@ class CacheBustingTest(unittest.TestCase):
         report(self, "Cache-Control set outside the versioned folders", problems)
 
 
+class FontPreloadTest(unittest.TestCase):
+    def test_font_preloads_fetch_exactly_the_font_face_urls(self):
+        faces, preloads = font_faces(), font_preloads()
+        problems = preload_problems(preloads, faces)
+        if faces and not any(where == rel(INDEX) for where, _, _ in preloads):
+            problems.append(f"{rel(INDEX)} preloads no font, so its request waits for the CSS")
+        report(self, "font preloads", problems)
+
+
 class VersionProblemsSelfTest(unittest.TestCase):
     def test_missing_and_stale_versions_are_reported_and_a_match_is_not(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -106,6 +176,31 @@ class VersionProblemsSelfTest(unittest.TestCase):
         self.assertEqual(len(problems), 2, problems)
         self.assertTrue(problems[0].startswith("missing") and f"?v={good}" in problems[0])
         self.assertTrue(problems[1].startswith("stale") and f"?v={good}" in problems[1])
+
+
+class PreloadProblemsSelfTest(unittest.TestCase):
+    FACE = "https://resume.chenyang.us/fonts/f.woff2?v=12345678"
+    GOOD = {"rel": "preload", "as": "font", "type": "font/woff2", "crossorigin": ""}
+
+    def test_only_the_exact_url_with_crossorigin_and_the_woff2_type_passes(self):
+        no_cors = {k: v for k, v in self.GOOD.items() if k != "crossorigin"}
+        cases = [
+            ("exact", self.GOOD, self.FACE, 0),
+            ("credentialed", dict(self.GOOD, crossorigin="use-credentials"), self.FACE, 1),
+            ("other version", self.GOOD, self.FACE.replace("12345678", "87654321"), 1),
+            ("unversioned", self.GOOD, self.FACE.split("?")[0], 1),
+            ("no crossorigin", no_cors, self.FACE, 1),
+            ("other type", dict(self.GOOD, type="font/woff"), self.FACE, 1),
+        ]
+        for name, attrs, url, count in cases:
+            with self.subTest(name):
+                problems = preload_problems([(name, attrs, url)], {self.FACE: "css/x.css"})
+                self.assertEqual(len(problems), count, problems)
+
+    def test_a_relative_url_in_css_and_a_root_absolute_href_resolve_alike(self):
+        css, page = served_url(PUBLIC / "css" / "x.css"), served_url(PUBLIC / "index.html")
+        self.assertEqual(css, SITE + "css/x.css")
+        self.assertEqual(urljoin(css, "../fonts/f.woff2?v=1"), urljoin(page, "/fonts/f.woff2?v=1"))
 
 
 if __name__ == "__main__":

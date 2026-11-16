@@ -227,9 +227,10 @@ def _raster_urls(where, text, base):
 
 
 class IconSizingTest(unittest.TestCase):
-    """Icon CSS policy: 20px below 721px, 24px from 721px, 16px grayscale in print; always square."""
+    """Icon CSS policy: 20px below 600px, 24px from 600px, 16px grayscale in print; always square."""
 
-    SCREEN_POLICY = {320: 20, 390: 20, 600: 20, 720: 20, 721: 24, 768: 24, 1024: 24, 1440: 24}
+    # The readability spec moved the step from 721px to the 600px tablet breakpoint on purpose.
+    SCREEN_POLICY = {320: 20, 390: 20, 599: 20, 600: 24, 720: 24, 768: 24, 1024: 24, 1440: 24}
     PRINT_WIDTH = 794  # A4 at 96dpi; the desktop rules still apply, so print must override them
 
     @staticmethod
