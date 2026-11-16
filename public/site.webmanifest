@@ -1,0 +1,15 @@
+{
+  "name": "Jerry Yang — Software Architect",
+  "short_name": "Jerry Yang",
+  "description": "Resume of Jerry Yang, Software Architect with 20+ years delivering high-scale platforms at Apple, Amazon, Microsoft, eBay, and Yahoo!",
+  "lang": "en",
+  "start_url": "/",
+  "scope": "/",
+  "display": "browser",
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

@@ -1,5 +1,5 @@
 # resume.chenyang.us — Jerry Yang
-# Crawlers welcome. Last updated: 2026-05-27
+# Crawlers welcome. Last updated: 2026-11-16
 
 User-agent: *
 Allow: /

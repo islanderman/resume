@@ -3,6 +3,7 @@ carries ?v=<first 8 hex of its sha256>; a changed file without a new ?v= fails h
 font preload must name its @font-face URL exactly, or the browser fetches the font twice."""
 
 import hashlib
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -54,6 +55,50 @@ def references():
                 if target is not None:
                     found.append((f"{rel(page)} {item.where}", item.value, target))
     return found + stylesheet_references()
+
+
+def site_local(value):
+    """Root-relative form of a site URL in metadata ('/img/a.png?v=1'), else None."""
+    text = value.strip()
+    parts = urlsplit(text)
+    if refs.kind(text) == "external" and parts.hostname == urlsplit(SITE).hostname:
+        return parts.path + (f"?{parts.query}" if parts.query else "")
+    return text if refs.kind(text) == "local" and text.startswith("/") else None
+
+
+def json_strings(value):
+    """Every string leaf of parsed JSON."""
+    if isinstance(value, dict):
+        return [s for v in value.values() for s in json_strings(v)]
+    if isinstance(value, list):
+        return [s for v in value for s in json_strings(v)]
+    return [value] if isinstance(value, str) else []
+
+
+def metadata_references():
+    """(where, url, file) for every <meta content> and JSON-LD URL in public/ pages naming a file.
+    Crawlers and link previews cache these too, so a stale one keeps the old card or image alive."""
+    found = []
+    for page in public_files(".html", ".htm"):
+        facts = htmlfacts.page(page)
+        values = [
+            (f"<meta {m.get('property') or m.get('name')}>", m["content"])
+            for m in facts.metas
+            if m.get("content")
+        ]
+        for script in facts.scripts:
+            if script.json_ld:
+                try:
+                    data = json.loads(script.text)
+                except ValueError:
+                    continue  # tests/test_seo.py reports JSON-LD that does not parse
+                values += [("JSON-LD", v) for v in json_strings(data)]
+        for where, value in values:
+            local = site_local(value)
+            target = refs.resolve(local, page.parent)[0] if local else None
+            if target is not None:
+                found.append((f"{rel(page)} {where}", value, target))
+    return found
 
 
 def version_problems(found):
@@ -123,6 +168,12 @@ class CacheBustingTest(unittest.TestCase):
             self.fail("no page references a file in public/css, js, img or fonts")
         report(self, "missing or stale ?v= cache busters", version_problems(found))
 
+    def test_every_metadata_url_into_an_immutable_folder_carries_its_file_hash(self):
+        found = [f for f in metadata_references() if in_immutable_folder(f[2])]
+        if not found:
+            self.fail("no <meta> or JSON-LD URL names a file in public/img; og:image belongs there")
+        report(self, "social and structured-data URLs without a fresh ?v=", version_problems(found))
+
     def test_every_stylesheet_url_carries_its_file_hash(self):
         # Any folder, not just the immutable ones: a url() is fetched by the cached stylesheet, so a
         # stale one keeps serving the old file for as long as that stylesheet stays cached.
@@ -176,6 +227,27 @@ class VersionProblemsSelfTest(unittest.TestCase):
         self.assertEqual(len(problems), 2, problems)
         self.assertTrue(problems[0].startswith("missing") and f"?v={good}" in problems[0])
         self.assertTrue(problems[1].startswith("stale") and f"?v={good}" in problems[1])
+
+
+class SiteLocalSelfTest(unittest.TestCase):
+    def test_only_site_urls_and_root_paths_count_as_files(self):
+        cases = [
+            (SITE + "img/og/a.png?v=1", "/img/og/a.png?v=1"),
+            ("https://RESUME.chenyang.us/x.png", "/x.png"),
+            ("/img/a.png", "/img/a.png"),
+            ("https://example.com/img/a.png", None),
+            ("Jerry Yang", None),
+            ("profile", None),
+            ("#ffffff", None),
+            ("mailto:a@b.co", None),
+        ]
+        for value, want in cases:
+            with self.subTest(value):
+                self.assertEqual(site_local(value), want)
+
+    def test_json_strings_reach_every_nested_leaf(self):
+        data = {"a": "1", "b": [{"c": "2"}, 3, None, ["4"]], "d": {"e": True}}
+        self.assertEqual(json_strings(data), ["1", "2", "4"])
 
 
 class PreloadProblemsSelfTest(unittest.TestCase):

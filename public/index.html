@@ -6,34 +6,21 @@
     <title>Jerry Yang — Software Architect | Resume</title>
     <meta
       name="description"
-      content="Resume of Jerry Yang, Software Architect with 20+ years delivering high-scale platforms at Apple, Amazon, Microsoft, eBay, and Yahoo! Platforms span cloud, on-premises, and embedded systems with vendor-agnostic designs. Led AI and machine learning initiatives, including automated model deployment, intelligent manufacturing workflows, and autonomous reasoning systems that orchestrate multi-step operations."
+      content="Resume of Jerry Yang, Software Architect with 20+ years delivering high-scale platforms at Apple, Amazon, Microsoft, eBay, and Yahoo!"
+    />
+    <meta
+      name="robots"
+      content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
     />
     <meta name="author" content="Jerry Yang" />
     <meta
       name="keywords"
-      content="Jerry Yang, Chen Yang, software architect, senior software engineer, Apple engineer, infrastructure engineer, Java, Go, Golang, Python, Swift, Kubernetes, AWS, distributed systems, big data, Kafka, Redis, PostgreSQL, Snowflake, machine learning platform, cloud engineering, Amazon, Microsoft, eBay, Roblox, Walmart, Addepar, Yahoo, NYU, Stony Brook, Silicon Valley, San Jose"
+      content="Jerry Yang, software architect, Java, Go, Python, Kubernetes, AWS, Kafka, Redis, Snowflake, big data, machine learning"
     />
     <link rel="canonical" href="https://resume.chenyang.us/" />
     <meta name="msvalidate.01" content="9D75B58D9AC0EF87C3D89261112BC012" />
     <meta name="theme-color" content="#ffffff" />
     <meta name="color-scheme" content="only light" />
-
-    <!-- Open Graph -->
-    <meta property="og:type" content="profile" />
-    <meta property="og:title" content="Jerry Yang — Software Architect" />
-    <meta
-      property="og:description"
-      content="20+ years building scalable infrastructure at Apple, Amazon, Microsoft, eBay, and more."
-    />
-    <meta property="og:url" content="https://resume.chenyang.us/" />
-
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Jerry Yang — Software Architect" />
-    <meta
-      name="twitter:description"
-      content="20+ years building scalable infrastructure at Apple, Amazon, Microsoft, eBay, and more."
-    />
 
     <link
       rel="preload"
@@ -46,89 +33,185 @@
     <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Open Graph; og:url is the canonical URL, and the card carries ?v= like every /img/ URL. -->
+    <meta property="og:type" content="profile" />
+    <meta property="og:site_name" content="Jerry Yang" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content="Jerry Yang — Software Architect" />
+    <meta
+      property="og:description"
+      content="20+ years building scalable infrastructure at Apple, Amazon, Microsoft, eBay, and more."
+    />
+    <meta property="og:url" content="https://resume.chenyang.us/" />
+    <meta
+      property="og:image"
+      content="https://resume.chenyang.us/img/og/jerry-yang.png?v=87536855"
+    />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Jerry Yang, Software Architect: the JY monogram above the name, title, and resume.chenyang.us"
+    />
+    <meta property="profile:first_name" content="Jerry" />
+    <meta property="profile:last_name" content="Yang" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Jerry Yang — Software Architect" />
+    <meta
+      name="twitter:description"
+      content="20+ years building scalable infrastructure at Apple, Amazon, Microsoft, eBay, and more."
+    />
+    <meta
+      name="twitter:image"
+      content="https://resume.chenyang.us/img/og/jerry-yang.png?v=87536855"
+    />
+    <meta
+      name="twitter:image:alt"
+      content="Jerry Yang, Software Architect: the JY monogram above the name, title, and resume.chenyang.us"
+    />
 
     <!-- Google Analytics 4; the config lives in a file because the CSP allows no inline script. -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-3CH8BVY4VX"></script>
     <script src="js/ga-init.js?v=fb1b67a3" defer></script>
 
-    <!-- Structured data for search engines and AI crawlers -->
+    <!-- Structured data: one linked graph; every fact in it is visible on the page (test_seo.py). -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "Person",
-        "name": "Jerry Yang",
-        "alternateName": "Chen Yang",
-        "jobTitle": "Software Architect",
-        "description": "Software Architect with 20+ years delivering high-scale platforms at Apple, Amazon, Microsoft, eBay, and Yahoo! Platforms span cloud, on-premises, and embedded systems with vendor-agnostic designs. Led AI and machine learning initiatives, including automated model deployment, intelligent manufacturing workflows, and autonomous reasoning systems that orchestrate multi-step operations.",
-        "url": "https://resume.chenyang.us/",
-        "email": "mailto:zhenyoung@gmail.com",
-        "telephone": "+1-917-582-2826",
-        "image": "https://resume.chenyang.us/apple-touch-icon.png",
-        "worksFor": {
-          "@type": "Organization",
-          "name": "Apple Inc.",
-          "url": "https://www.apple.com/",
-          "address": {
-            "@type": "PostalAddress",
-            "addressLocality": "Sunnyvale",
-            "addressRegion": "CA",
-            "addressCountry": "US"
-          }
-        },
-        "hasOccupation": {
-          "@type": "Occupation",
-          "name": "Senior Software Infrastructure Engineer / Technical Lead",
-          "occupationLocation": {
-            "@type": "City",
-            "name": "Sunnyvale, CA"
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://resume.chenyang.us/#website",
+            "url": "https://resume.chenyang.us/",
+            "name": "Jerry Yang",
+            "inLanguage": "en",
+            "publisher": {
+              "@id": "https://resume.chenyang.us/#person"
+            }
           },
-          "skills": "Distributed systems, cloud and on-premise infrastructure, embedded systems, AI/ML platforms, automated reasoning, Java, Go, Python, Swift, Lua, C++, Kubernetes, AWS, Kafka, Redis, PostgreSQL, Snowflake, Cassandra, Elasticsearch"
-        },
-        "alumniOf": [
+          {
+            "@type": "ProfilePage",
+            "@id": "https://resume.chenyang.us/#profilepage",
+            "url": "https://resume.chenyang.us/",
+            "name": "Jerry Yang — Software Architect | Resume",
+            "isPartOf": {
+              "@id": "https://resume.chenyang.us/#website"
+            },
+            "mainEntity": {
+              "@id": "https://resume.chenyang.us/#person"
+            },
+            "primaryImageOfPage": {
+              "@id": "https://resume.chenyang.us/#primaryimage"
+            },
+            "inLanguage": "en",
+            "dateModified": "2026-11-16"
+          },
+          {
+            "@type": "ImageObject",
+            "@id": "https://resume.chenyang.us/#primaryimage",
+            "url": "https://resume.chenyang.us/img/og/jerry-yang.png?v=87536855",
+            "contentUrl": "https://resume.chenyang.us/img/og/jerry-yang.png?v=87536855",
+            "width": 1200,
+            "height": 630
+          },
+          {
+            "@type": "Person",
+            "@id": "https://resume.chenyang.us/#person",
+            "name": "Jerry Yang",
+            "givenName": "Jerry",
+            "familyName": "Yang",
+            "jobTitle": "Software Architect",
+            "description": "Software Architect with 20+ years delivering high-scale platforms at Apple, Amazon, Microsoft, eBay, and Yahoo! Platforms span cloud, on-premises, and embedded systems with vendor-agnostic designs. Led AI and machine learning initiatives, including automated model deployment, intelligent manufacturing workflows, and autonomous reasoning systems that orchestrate multi-step operations.",
+            "url": "https://resume.chenyang.us/",
+            "image": {
+              "@id": "https://resume.chenyang.us/#primaryimage"
+            },
+            "email": "mailto:zhenyoung@gmail.com",
+            "telephone": "+1-917-582-2826",
+            "worksFor": {
+              "@id": "https://resume.chenyang.us/#apple"
+            },
+            "hasOccupation": {
+              "@type": "Occupation",
+              "name": "Senior Software Infrastructure Engineer / Technical Lead",
+              "occupationLocation": {
+                "@type": "City",
+                "name": "Sunnyvale, CA"
+              }
+            },
+            "alumniOf": [
+              {
+                "@id": "https://resume.chenyang.us/#nyu"
+              },
+              {
+                "@id": "https://resume.chenyang.us/#stonybrook"
+              }
+            ],
+            "hasCredential": [
+              {
+                "@type": "EducationalOccupationalCredential",
+                "name": "M.S., Computer Science",
+                "credentialCategory": "degree",
+                "recognizedBy": {
+                  "@id": "https://resume.chenyang.us/#nyu"
+                }
+              },
+              {
+                "@type": "EducationalOccupationalCredential",
+                "name": "B.S., Computer Science",
+                "credentialCategory": "degree",
+                "recognizedBy": {
+                  "@id": "https://resume.chenyang.us/#stonybrook"
+                }
+              }
+            ],
+            "knowsAbout": [
+              "Machine learning",
+              "Big data",
+              "Embedded systems",
+              "Java",
+              "Go",
+              "Python",
+              "Kubernetes",
+              "AWS",
+              "Kafka",
+              "Redis",
+              "Snowflake",
+              "Cassandra",
+              "Elasticsearch"
+            ],
+            "knowsLanguage": ["en"]
+          },
+          {
+            "@type": "Organization",
+            "@id": "https://resume.chenyang.us/#apple",
+            "name": "Apple Inc.",
+            "url": "https://www.apple.com/",
+            "sameAs": "https://en.wikipedia.org/wiki/Apple_Inc."
+          },
           {
             "@type": "CollegeOrUniversity",
+            "@id": "https://resume.chenyang.us/#nyu",
             "name": "New York University",
-            "sameAs": "https://www.nyu.edu/",
-            "address": {
-              "@type": "PostalAddress",
-              "addressLocality": "New York",
-              "addressRegion": "NY",
-              "addressCountry": "US"
-            }
+            "url": "https://www.nyu.edu/",
+            "sameAs": ["https://www.nyu.edu/", "https://en.wikipedia.org/wiki/New_York_University"]
           },
           {
             "@type": "CollegeOrUniversity",
+            "@id": "https://resume.chenyang.us/#stonybrook",
             "name": "Stony Brook University",
-            "sameAs": "https://www.stonybrook.edu/",
-            "address": {
-              "@type": "PostalAddress",
-              "addressLocality": "Stony Brook",
-              "addressRegion": "NY",
-              "addressCountry": "US"
-            }
+            "url": "https://www.stonybrook.edu/",
+            "sameAs": [
+              "https://www.stonybrook.edu/",
+              "https://en.wikipedia.org/wiki/Stony_Brook_University"
+            ]
           }
-        ],
-        "knowsAbout": [
-          "Distributed Systems",
-          "Cloud Infrastructure",
-          "Machine Learning Platforms",
-          "Software Architecture",
-          "Embedded Systems",
-          "Big Data",
-          "Java",
-          "Go",
-          "Python",
-          "Swift",
-          "Kubernetes",
-          "AWS",
-          "Kafka",
-          "Redis",
-          "PostgreSQL",
-          "Snowflake",
-          "Cassandra",
-          "Elasticsearch"
-        ],
-        "knowsLanguage": ["en", "zh"]
+        ]
       }
     </script>
   </head>
@@ -142,7 +225,9 @@
         Cell: (917) 582-2826
         <span class="sep" aria-hidden="true">|</span>
         <span class="links">
-          <a href="mailto:zhenyoung@gmail.com" title="Email Jerry Yang">zhenyoung@gmail.com</a>
+          <a href="mailto:zhenyoung@gmail.com" rel="me" title="Email Jerry Yang"
+            >zhenyoung@gmail.com</a
+          >
           <span class="sep" aria-hidden="true">|</span>
           <a href="https://resume.chenyang.us">https://resume.chenyang.us/</a>
         </span>
@@ -525,6 +610,7 @@
                 width="24"
                 height="24"
                 decoding="async"
+                loading="lazy"
               />
               <span>M.S., Computer Science, <span class="org">New York University</span></span>
             </h3>
@@ -546,6 +632,7 @@
                 width="24"
                 height="24"
                 decoding="async"
+                loading="lazy"
               />
               <span>B.S., Computer Science, <span class="org">Stony Brook University</span></span>
             </h3>
