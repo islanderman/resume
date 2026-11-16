@@ -1,4 +1,4 @@
-"""Mobile and tablet guards: static heuristics, not a layout engine.
+"""Mobile, tablet and desktop guards: static heuristics, not a layout engine.
 
 The no-overflow check at 390/768/1024/1440 px runs separately in a browser.
 """
@@ -10,6 +10,8 @@ from resume_kit import cssscan, htmlfacts, pagecss
 from resume_kit.common import INDEX, report
 
 MIN_ZOOM_CEILING = 5.0  # WCAG 1.4.4: a maximum-scale below 5 stops users from zooming text.
+MEASURE_EM = (44.0, 52.0)  # Scanned bullets: about 105 characters, the printed line's length.
+WIDE_SCREENS = (600, 768, 1024, 1440)  # Tablet and desktop; on phones the viewport sets the width.
 
 
 def viewport_settings(content):
@@ -24,6 +26,21 @@ def viewport_settings(content):
 def width_queries():
     """Width-bounded @media alternatives from the stylesheets the page actually links or inlines."""
     return cssscan.width_queries(pagecss.page_sheet())
+
+
+def measure_problems(sheet, widths=WIDE_SCREENS):
+    """One problem per width where :root --measure-text is not an em length inside MEASURE_EM."""
+    low, high = MEASURE_EM
+    problems = []
+    for width in widths:
+        scope = cssscan.root_scope(cssscan.effective(sheet, width))
+        value = scope.get("--measure-text", ("", False))[0]
+        match = cssscan.LENGTH.match(value)
+        if not match or match.group(2).lower() != "em":
+            problems.append(f"at {width}px --measure-text is {value!r}, not an em length")
+        elif not low <= float(match.group(1)) <= high:
+            problems.append(f"at {width}px --measure-text is {value}, outside {low:g}em-{high:g}em")
+    return problems
 
 
 class ViewportTest(unittest.TestCase):
@@ -89,6 +106,27 @@ class FixedWidthTest(unittest.TestCase):
         report(
             self, "fixed widths that overflow a phone", cssscan.width_problems(pagecss.page_sheet())
         )
+
+
+class MeasureTest(unittest.TestCase):
+    def test_content_column_measure_is_44_to_52em_on_tablet_and_desktop(self):
+        report(self, "content column measure", measure_problems(pagecss.page_sheet()))
+
+
+class MeasureProblemsSelfTest(unittest.TestCase):
+    def test_only_an_em_measure_from_44_to_52_passes(self):
+        cases = [("48em", 0), ("44em", 0), ("52em", 0), ("30em", 1), ("56em", 1), ("48rem", 1)]
+        cases += [("864px", 1), ("calc(48em + 1px)", 1), (None, 1)]
+        for value, count in cases:
+            with self.subTest(value):
+                css = ":root { --x: 1em }" if value is None else f":root {{ --measure-text: {value} }}"
+                problems = measure_problems(cssscan.parse(css), widths=(1024,))
+                self.assertEqual(len(problems), count, problems)
+
+    def test_a_narrower_desktop_override_fails_only_from_its_breakpoint(self):
+        css = ":root { --measure-text: 48em } @media (width >= 1024px) { :root { --measure-text: 30em } }"
+        problems = measure_problems(cssscan.parse(css))
+        self.assertEqual([p.split("px")[0] for p in problems], ["at 1024", "at 1440"], problems)
 
 
 if __name__ == "__main__":

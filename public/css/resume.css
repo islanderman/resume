@@ -141,10 +141,11 @@
     --rail: calc(var(--icon-size) + var(--icon-gap));
 
     /*
-     * About 66 characters per line. em, not ch: ch follows whichever font has loaded, so a ch box
-     * would resize the column at the font swap; em also scales with the browser text size.
+     * About 105 characters per line: résumé lines are scanned bullets, and the printed line runs
+     * as long (about 48em at 11pt on Letter). em, not ch: ch follows whichever font has loaded, so
+     * a ch box would resize the column at the font swap; em also scales with the browser text size.
      */
-    --measure-text: 30em;
+    --measure-text: 48em;
     --measure: calc(var(--measure-text) + var(--rail));
 
     --target-min: 44px;
