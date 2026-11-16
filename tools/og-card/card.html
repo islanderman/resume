@@ -1,0 +1,101 @@
+<!doctype html>
+<!--
+  Social card source: `make og-card` screenshots this page at 1200x630 in headless Chrome and writes
+  public/img/og/jerry-yang.png. It reuses the site's stylesheet for the font and colour tokens, so
+  the card follows any token change. Build-time only; it is never deployed.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Social card</title>
+    <link rel="stylesheet" href="../../public/css/resume.css" />
+    <style>
+      /* Card tokens: a fixed raster canvas, so px is the unit. Text sizes hold at a 600x315 preview. */
+      :root {
+        --card-width: 1200px;
+        --card-height: 630px;
+        --card-monogram: 104px;
+        --card-name: 116px;
+        --card-title: 46px;
+        --card-tagline: 33px;
+        --card-url: 29px;
+        --card-measure: 900px;
+        --card-gap-monogram: 30px;
+        --card-gap-title: 4px;
+        --card-gap-tagline: 30px;
+        --card-gap-url: 26px;
+      }
+
+      /* Unlayered, so these beat the site's layered page layout. */
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: var(--card-width);
+        height: var(--card-height);
+        overflow: hidden;
+      }
+
+      body {
+        display: grid;
+        grid-template-columns: none;
+        place-content: center;
+        justify-items: center;
+        row-gap: 0;
+        text-align: center;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .card-monogram {
+        width: var(--card-monogram);
+        height: var(--card-monogram);
+        margin-block-end: var(--card-gap-monogram);
+      }
+
+      .card-name {
+        margin: 0;
+        color: var(--color-heading);
+        font-size: var(--card-name);
+        font-weight: var(--weight-semibold);
+        line-height: var(--leading-title);
+        letter-spacing: var(--tracking-title);
+      }
+
+      .card-title {
+        margin: var(--card-gap-title) 0 0;
+        color: var(--color-subtitle);
+        font-size: var(--card-title);
+        line-height: var(--leading-heading);
+      }
+
+      .card-tagline {
+        max-width: var(--card-measure);
+        margin: var(--card-gap-tagline) 0 0;
+        color: var(--color-text);
+        font-size: var(--card-tagline);
+        line-height: var(--leading-heading);
+        text-wrap: balance;
+      }
+
+      .card-url {
+        margin: var(--card-gap-url) 0 0;
+        color: var(--color-link);
+        font-size: var(--card-url);
+        font-weight: var(--weight-semibold);
+        line-height: var(--leading-heading);
+        text-decoration-line: underline;
+        text-decoration-thickness: var(--underline-thickness);
+        text-underline-offset: var(--underline-offset);
+      }
+    </style>
+  </head>
+  <body>
+    <img class="card-monogram" src="../../public/favicon.svg" alt="" />
+    <h1 class="card-name">Jerry Yang</h1>
+    <p class="card-title">Software Architect</p>
+    <p class="card-tagline">
+      20+ years delivering high-scale platforms at Apple, Amazon, Microsoft, eBay, and Yahoo!
+    </p>
+    <p class="card-url">resume.chenyang.us</p>
+  </body>
+</html>
