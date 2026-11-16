@@ -1,16 +1,28 @@
-"""Parity of public/ with the mirrored original; edge-injected Cloudflare code removed at capture."""
+"""Parity of public/ with the mirrored original; edge-injected Cloudflare code removed at capture.
+Wording follows the owner-approved copy edit of 2026-11-15 (fixtures/approved_copy.txt); links,
+contact details, titles, companies, places, dates and JSON-LD still match the original."""
 
 import difflib
 import json
 import re
 import unittest
 
-from resume_kit import htmlfacts, refs, trackers
+from resume_kit import elements, htmlfacts, refs, trackers
 from resume_kit.common import FIXTURES, INDEX, PUBLIC, fixture_text, read_text, rel, report
 
+ORIGINAL = FIXTURES / "original.html"
 SECTIONS = ("Professional Summary", "Work Experience", "Advisory Roles", "Education")
 ROOT_FILES = ("robots.txt", "sitemap.xml", "llms.txt")
 MISSING_HINT = "parity fixture; copy the mirrored original page into tests/fixtures/"
+# The copy changed on purpose, so text parity is against this fixture, not original.html. It holds
+# one block per line; regenerate it in the same commit as an approved wording change, so its diff
+# shows exactly which sentences changed.
+APPROVED_COPY = "approved_copy.txt"
+REGENERATE = (
+    'cd tests && python3 -c "from resume_kit import htmlfacts; '
+    "from resume_kit.common import INDEX; "
+    'print(*htmlfacts.page(INDEX).visible_lines(), sep=chr(10))" > fixtures/approved_copy.txt'
+)
 # The one intended JSON-LD edit (key: (original, port)): the 16-48 px favicon.ico is too small for
 # structured data, so "image" now names the 180 px apple-touch-icon.png.
 JSON_LD_CHANGES = {
@@ -19,13 +31,19 @@ JSON_LD_CHANGES = {
         "https://resume.chenyang.us/apple-touch-icon.png",
     )
 }
+# The meta and JSON-LD descriptions were synced with the rewritten summary on purpose, so head
+# parity skips them and test_descriptions_mirror_the_summary pins them instead.
+SYNCED = ("description",)
+META_DESCRIPTION_LEAD = "Resume of Jerry Yang, "
+DATE = r"(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) )?\d{4}"
+DATE_RANGE = re.compile(rf"({DATE})\s*[-–—]\s*({DATE}|Present)")
 
 
 def original(edge=True):
-    return htmlfacts.page(FIXTURES / "original.html", edge=edge)
+    return htmlfacts.page(ORIGINAL, edge=edge)
 
 
-def word_diff(expected, actual, limit=6):
+def word_diff(expected, actual, limit=6, labels=("original", "port")):
     exp, act = expected.split(), actual.split()
     lines = []
     for tag, a0, a1, b0, b1 in difflib.SequenceMatcher(
@@ -34,12 +52,19 @@ def word_diff(expected, actual, limit=6):
         if tag != "equal" and len(lines) < limit:
             context = " ".join(exp[max(0, a0 - 4) : a0])
             lines.append(
-                f"after '{context}': original has '{' '.join(exp[a0:a1])[:90]}', port has '{' '.join(act[b0:b1])[:90]}'"
+                f"after '{context}': {labels[0]} has '{' '.join(exp[a0:a1])[:90]}', "
+                f"{labels[1]} has '{' '.join(act[b0:b1])[:90]}'"
             )
     return lines
 
 
-def json_ld(facts, changes=None):
+def approved_copy():
+    """The fixture's lines joined the way visible_text() joins blocks."""
+    text = fixture_text(APPROVED_COPY, f"approved copy; generate it with: {REGENERATE}")
+    return " ".join(text.split())
+
+
+def json_ld(facts, changes=None, drop=()):
     """Parsed JSON-LD blocks; `changes` maps key -> (old, new) and rewrites only an exact old value."""
     out = []
     for script in facts.scripts:
@@ -52,13 +77,20 @@ def json_ld(facts, changes=None):
             for key, (old, new) in (changes or {}).items():
                 if isinstance(data, dict) and data.get(key) == old:
                     data[key] = new
+            for key in drop:
+                if isinstance(data, dict):
+                    data.pop(key, None)
             out.append(data)
     return out
 
 
-def head_signature(facts, ld_changes=None):
-    ld = [d if isinstance(d, str) else json.dumps(d, sort_keys=True) for d in json_ld(facts, ld_changes)]
-    return {
+def head_signature(facts, ld_changes=None, skip=()):
+    """Head metadata to compare; `skip` drops a key from the tags and the JSON-LD alike."""
+    ld = [
+        d if isinstance(d, str) else json.dumps(d, sort_keys=True)
+        for d in json_ld(facts, ld_changes, skip)
+    ]
+    signature = {
         "title": facts.title.strip(),
         "description": facts.meta("name", "description"),
         "author": facts.meta("name", "author"),
@@ -75,6 +107,50 @@ def head_signature(facts, ld_changes=None):
         },
         "json-ld": sorted(ld),
     }
+    for key in skip:
+        signature.pop(key, None)
+    return signature
+
+
+def with_class(name):
+    return lambda tag, attrs, parents: name in elements.classes(attrs)
+
+
+def texts(path, predicate):
+    return [e.text for e in elements.pick_in(path, predicate)]
+
+
+def jobs(path):
+    """Visible text of every .job block (jobs, the advisory role, degrees) in page order."""
+    return texts(path, with_class("job"))
+
+
+def job_header(text):
+    """A job's title, company, place and dates: its text up to the end of its first date range."""
+    match = DATE_RANGE.search(text)
+    return text[: match.end()] if match else text
+
+
+def header_facts(text):
+    """Header words only: the dash, comma and parenthesis separators changed, no fact did."""
+    text = re.sub(r"\s[-–—]\s|[(),]", " ", text)
+    return " ".join(re.sub(r"(?<=\d)-(?=\d)", " ", text).split())
+
+
+def date_ranges(path):
+    """(start, end) of each job's first date range, whatever dash separates them."""
+    return [m.groups() if m else None for m in (DATE_RANGE.search(j) for j in jobs(path))]
+
+
+def summary(path):
+    """Text of the paragraph in the section that #summary labels, or None."""
+    found = texts(
+        path,
+        lambda tag, attrs, parents: tag == "p"
+        and bool(parents)
+        and parents[-1][1].get("aria-labelledby") == "summary",
+    )
+    return found[0] if found else None
 
 
 class OriginalFixtureTest(unittest.TestCase):
@@ -90,6 +166,13 @@ class OriginalFixtureTest(unittest.TestCase):
         if len(visible) < 3000:
             problems.append(f"visible text is only {len(visible)} chars")
         report(self, "original.html", problems)
+
+    def test_approved_copy_fixture_is_complete(self):
+        visible = approved_copy()
+        problems = [f"lacks section '{s}'" for s in SECTIONS if s not in visible]
+        if len(visible) < 3000:
+            problems.append(f"holds only {len(visible)} chars")
+        report(self, f"tests/fixtures/{APPROVED_COPY}", problems)
 
     def test_fixtures_hold_no_cloudflare_edge_code(self):
         # Edge code is stripped when a fixture is captured; it would also trip secret scanners.
@@ -125,16 +208,17 @@ class OriginalFixtureTest(unittest.TestCase):
 
 
 class ContentParityTest(unittest.TestCase):
-    """public/index.html against the normalized original (404.html is not compared)."""
+    """public/index.html against the approved copy and the normalized original (not 404.html)."""
 
-    def test_visible_text_equals_the_original(self):
-        expected = original().visible_text()
+    def test_visible_text_equals_the_approved_copy(self):
+        expected = approved_copy()
         actual = htmlfacts.page(INDEX).visible_text()
         if expected != actual:
             report(
                 self,
-                f"visible text differs ({len(expected)} vs {len(actual)} chars)",
-                word_diff(expected, actual),
+                f"visible text differs from tests/fixtures/{APPROVED_COPY} ({len(expected)} vs "
+                f"{len(actual)} chars); if the new wording is approved, run: {REGENERATE}",
+                word_diff(expected, actual, labels=("approved copy", "port")),
             )
 
     def test_external_links_are_unchanged(self):
@@ -146,6 +230,42 @@ class ContentParityTest(unittest.TestCase):
         problems += [f"new in the port: {u}" for u in sorted(actual - expected)]
         report(self, "https/mailto/tel links changed", problems)
 
+    def test_contact_details_are_unchanged(self):
+        expected = texts(ORIGINAL, with_class("contact"))
+        actual = texts(INDEX, with_class("contact"))
+        if expected != actual:
+            self.fail(f"contact block: original {expected}, port {actual}")
+
+    def test_job_headers_keep_titles_companies_places_and_dates(self):
+        expected = [header_facts(job_header(j)) for j in jobs(ORIGINAL)]
+        actual = [header_facts(job_header(j)) for j in jobs(INDEX)]
+        problems = []
+        if len(expected) != len(actual):
+            problems.append(f"{len(actual)} jobs, original has {len(expected)}")
+        problems += [
+            f"job {i}: original '{e}', port '{a}'"
+            for i, (e, a) in enumerate(zip(expected, actual), 1)
+            if e != a
+        ]
+        report(self, "job headers changed", problems)
+
+    def test_company_names_are_unchanged(self):
+        headers = [job_header(j) for j in jobs(ORIGINAL)]
+        names = texts(INDEX, with_class("org"))
+        problems = []
+        if len(names) != len(headers):
+            problems.append(f"{len(names)} .org names for {len(headers)} original jobs")
+        for i, (name, header) in enumerate(zip(names, headers), 1):
+            # Bounded on both sides, so a trimmed name ("Apple Inc") does not pass as a substring.
+            if not re.search(rf"(?<![\w@]){re.escape(name)}(?=[\s,]|$)", header):
+                problems.append(f"job {i}: '{name}' is not a company in '{header}'")
+        report(self, "company names changed", problems)
+
+    def test_date_ranges_are_unchanged(self):
+        expected, actual = date_ranges(ORIGINAL), date_ranges(INDEX)
+        if expected != actual:
+            self.fail(f"date ranges: original {expected}, port {actual}")
+
     def test_original_trackers_are_preserved_unchanged(self):
         port = trackers.provider_scripts(htmlfacts.page(INDEX))
         problems = []
@@ -155,14 +275,34 @@ class ContentParityTest(unittest.TestCase):
         report(self, "tracker scripts dropped or altered", problems)
 
     def test_head_metadata_is_preserved(self):
-        expected = head_signature(original(), JSON_LD_CHANGES)
-        actual = head_signature(htmlfacts.page(INDEX))
+        # Covers the JSON-LD structure too: every key and value but the intended edits must match.
+        expected = head_signature(original(), JSON_LD_CHANGES, skip=SYNCED)
+        actual = head_signature(htmlfacts.page(INDEX), skip=SYNCED)
         problems = [
             f"{key}: original {expected[key]!r}, port {actual[key]!r}"
             for key in expected
             if expected[key] != actual[key]
         ]
         report(self, "SEO and sharing metadata changed", problems)
+
+    def test_descriptions_mirror_the_summary(self):
+        text = summary(INDEX)
+        facts = htmlfacts.page(INDEX)
+        blocks = [b for b in json_ld(facts) if isinstance(b, dict)]
+        problems = [] if text else ["no <p> in the section that #summary labels"]
+        meta = facts.meta("name", "description")
+        if text and meta != META_DESCRIPTION_LEAD + text:
+            problems.append(
+                f"<meta name=description> is {meta!r}, not {META_DESCRIPTION_LEAD!r} + summary"
+            )
+        if not blocks:
+            problems.append("no JSON-LD object to carry the description")
+        problems += [
+            f"JSON-LD description is {b.get('description')!r}, not the summary"
+            for b in blocks
+            if text and b.get("description") != text
+        ]
+        report(self, "descriptions out of step with the summary", problems)
 
     def test_port_carries_no_cloudflare_edge_artifacts(self):
         # Pages does not run Email Obfuscation, so a pasted data-cfemail link would die there.

@@ -1,0 +1,51 @@
+Jerry Yang
+Software Architect
+Cell: (917) 582-2826 | zhenyoung@gmail.com | https://resume.chenyang.us/
+Professional Summary
+Software Architect with 20+ years delivering high-scale platforms at Apple, Amazon, Microsoft, eBay, and Yahoo! Platforms span cloud, on-premises, and embedded systems with vendor-agnostic designs. Led AI and machine learning initiatives, including automated model deployment, intelligent manufacturing workflows, and autonomous reasoning systems that orchestrate multi-step operations.
+Work Experience
+Senior Software Infrastructure Engineer / Technical Lead, Apple Inc.
+Sunnyvale, CA — May 2019 - Present
+Architect infrastructure for a manufacturing organization of 30+ engineers.
+Architect a quality sampling engine processing millions of daily inspections (Go, Lua, Redis)
+Design a machine learning platform automating model deployment to factories
+Migrate manufacturing infrastructure to cloud vendors in the MSI Cloud Engineering initiative, including Snowflake adoption for cross-team data access and Kafka/Redis event-driven pipelines (Java, AWS, Kubernetes)
+Convert embedded systems from iOS to Go, enabling bi-directional production-line communication at remote factories (Bash, Python, PowerShell, mDNS, IPv6)
+Architect an automated AI code and compliance reviewer for the organization: multi-model (Claude, Gemini) pull request review, severity-ranked findings, and security and policy-compliance gating (Python, Go, Bash)
+Wire autonomous fix-test-commit-reply cycles into CI/CD
+Build and maintain an internal AI agent plugin ecosystem (agents, commands, reusable skills) for code review, security, release engineering, and multi-agent orchestration, adopted across engineering teams
+Principal Software Engineer, Infrastructure Services, Roblox Corp.
+San Mateo, CA — Sep 2018 - Mar 2019
+Contributed to platform infrastructure supporting 100M+ monthly active users. Worked on service reliability and .NET Core migration for backend infrastructure services.
+Principal Software Engineer, Data Services and Solutions, eBay Inc.
+Campbell, CA — Jun 2016 - Aug 2018
+Architected a unified data query layer using Apache Calcite, abstracting access across 7+ heterogeneous data stores (Elasticsearch, Cassandra, MongoDB, Couchbase, and more). Eliminated the need for teams to write store-specific queries. Deployed on Kubernetes, the service became eBay's standard cross-platform data access interface.
+Staff Software Engineer, Smart Sourcing, @WalmartLabs
+San Bruno, CA — Jul 2014 - Jun 2016
+Built the sourcing optimization engine for Walmart.com's supply chain, reducing fulfillment costs by algorithmically selecting optimal distribution centers per order. Delivered real-time dashboards and alerts for supply chain operators, showing sourcing decisions across thousands of daily shipments.
+Software Engineer, Addepar
+Mountain View, CA — Sep 2013 - Jun 2014
+Worked on the Data team, then the Architecture team. Parallelized and optimized services to perform 10x better.
+Staff Software Engineer, Smart Pricing, @WalmartLabs
+San Bruno, CA — Jul 2012 - Sep 2013
+Designed the big data infrastructure powering daily pricing strategy for Walmart's entire retail and e-commerce catalog. Built APIs and dashboards enabling pricing analysts to compute and deploy competitive pricing decisions across millions of SKUs. Developed in Java using Spring, Hibernate, Hive, Cassandra, Solr, and LevelDB.
+Software Development Engineer, Search Experience, Amazon.com
+Seattle, WA — May 2011 - Jul 2012
+Shipped customer-facing features on Amazon's search page, delivering sub-200ms results across hundreds of millions of daily queries. Launched Visually Similar search, enabling image-based product discovery. Led the Mason-to-Java migration for search rendering, improving page performance and developer velocity. Built Amazon's mobile search experience. Implemented multi-language search with CJK tokenization via Lucene.
+Software Development Engineer II, Microsoft Corp.
+Redmond, WA — Aug 2008 - Apr 2011
+Office Mobile Shared Services. Ported Microsoft OneNote to Symbian, expanding Office Mobile's reach to Nokia's global user base. Built in C++ with RVCT compiler and QML.
+Mobile Advertising. Created an end-to-end automated test framework for iPhone ad components, reducing manual QA cycles and accelerating release cadence. Designed and set up the build lab infrastructure for continuous verification across device and simulator.
+Technical Yahoo!, Yahoo! Search Marketing, Yahoo! Inc.
+Sunnyvale, CA — Jul 2007 - Jul 2008
+Built the ad keyword canonicalization service (C++) powering targeting across 20+ international markets at 10,000 QPS.
+Technical Yahoo! (Intern), Yahoo! Inc.
+Sunnyvale, CA — Jun 2006 - Aug 2006
+Built a multilingual test framework (C++) for Yahoo! Search's semantic library covering CJK and European languages.
+Advisory Roles
+Member, In-Memory Databases Product Advisory Council, Amazon Web Services
+2024 – 2025
+Appointed by AWS to provide product direction and industry feedback on in-memory database services.
+Education
+M.S., Computer Science — New York University, New York, NY (2005-2007)
+B.S., Computer Science — Stony Brook University, Stony Brook, NY (2003-2005)

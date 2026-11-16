@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest import mock
 
 from resume_kit import cloudflare as cf
-from resume_kit import htmlfacts, refs, trackers
+from resume_kit import elements, htmlfacts, refs, trackers
 
 ADDRESS = "a@b.co"
 
@@ -142,6 +142,11 @@ class VisibleTextTest(unittest.TestCase):
         self.assertEqual(facts.visible_text(), "x")
         self.assertEqual(facts.title, "Doc")
 
+    def test_visible_lines_split_at_blocks_and_join_back_to_the_visible_text(self):
+        facts = htmlfacts.parse("<body><h3>A <span>b</span></h3>\n<p>c\n d<br>e</p></body>")
+        self.assertEqual(facts.visible_lines(), ["A b", "c d", "e"])
+        self.assertEqual(" ".join(facts.visible_lines()), facts.visible_text())
+
     def test_an_unclosed_head_does_not_swallow_the_body(self):
         self.assertEqual(
             htmlfacts.parse("<head><title>T</title><body><p>hi</p>").visible_text(), "hi"
@@ -177,6 +182,26 @@ class MarkupFactsTest(unittest.TestCase):
         self.assertEqual(facts.ids, {"top", "x"})
         self.assertEqual(facts.class_tokens, {"a", "b"})
         self.assertEqual(facts.style_attrs, [("h1", "color:red")])
+
+
+class ElementPickTest(unittest.TestCase):
+    HTML = (
+        '<section aria-labelledby="s"><h2 id="s">S</h2><p>one <b>two</b><br>three</p></section>'
+        '<p class="meta x"><span class="place">P</span> <span class="dates">D</span></p>'
+        "<p>no<script>hidden()</script> script</p>"
+    )
+
+    def test_text_is_nested_block_separated_and_never_hidden(self):
+        found = elements.pick(self.HTML, lambda tag, attrs, parents: tag == "p")
+        self.assertEqual([e.text for e in found], ["one two three", "P D", "no script"])
+
+    def test_classes_and_parents_select_elements(self):
+        meta = elements.pick(self.HTML, lambda t, a, p: "meta" in elements.classes(a))
+        self.assertEqual([(e.tag, e.text) for e in meta], [("p", "P D")])
+        under = elements.pick(
+            self.HTML, lambda t, a, p: bool(p) and p[-1][1].get("aria-labelledby") == "s"
+        )
+        self.assertEqual([e.tag for e in under], ["h2", "p"])
 
 
 class ReferenceKindTest(unittest.TestCase):

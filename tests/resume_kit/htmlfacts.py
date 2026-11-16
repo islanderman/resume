@@ -21,6 +21,8 @@ BLOCK = frozenset(
     "td tfoot th thead tr ul".split()
 )
 HIDDEN = frozenset("head title script style template noscript desc".split())
+# Marks block boundaries in the text: whitespace to visible_text(), a line break to visible_lines().
+BLOCK_BREAK = "\u2029"
 # Elements whose end tag may not be omitted; the others (p, li, td, ...) close implicitly.
 STRICT = frozenset(
     "a article aside b blockquote button code details div dl em figcaption figure footer form h1 h2 "
@@ -160,7 +162,7 @@ class PageFacts(HTMLParser):
         if "style" in attrs:
             self.style_attrs.append((tag, attrs["style"]))
         if tag in BLOCK:
-            self._chunks.append(" ")
+            self._chunks.append(BLOCK_BREAK)
         if tag in HIDDEN:
             self._hidden[tag] += 1
 
@@ -177,7 +179,7 @@ class PageFacts(HTMLParser):
         if self._current and self._current[0] == tag:
             self._finish_current()
         if tag in BLOCK:
-            self._chunks.append(" ")
+            self._chunks.append(BLOCK_BREAK)
 
     def handle_data(self, data):
         if self._mail:
@@ -260,6 +262,11 @@ class PageFacts(HTMLParser):
     def visible_text(self):
         text = unicodedata.normalize("NFC", "".join(self._chunks))
         return " ".join(text.split())
+
+    def visible_lines(self):
+        """visible_text() as one line per block, so a fixture of it diffs block by block."""
+        text = unicodedata.normalize("NFC", "".join(self._chunks))
+        return [" ".join(part.split()) for part in text.split(BLOCK_BREAK) if part.split()]
 
     def all_artifacts(self):
         found = list(self.artifacts)
