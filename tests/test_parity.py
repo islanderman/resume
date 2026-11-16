@@ -1,6 +1,7 @@
 """Parity of public/ with the mirrored original; edge-injected Cloudflare code removed at capture.
 Wording follows the owner-approved copy edit of 2026-11-15 (fixtures/approved_copy.txt); links,
-contact details, titles, companies, places, dates and JSON-LD still match the original."""
+contact details, titles, companies, places, dates, metrics, technologies and JSON-LD still match
+the original."""
 
 import difflib
 import json
@@ -22,6 +23,22 @@ REGENERATE = (
     'cd tests && python3 -c "from resume_kit import htmlfacts; '
     "from resume_kit.common import INDEX; "
     'print(*htmlfacts.page(INDEX).visible_lines(), sep=chr(10))" > fixtures/approved_copy.txt'
+)
+# Facts are pinned to original.html: approved_copy.txt is regenerated from the page, so it cannot
+# catch a changed fact. NAMES: the technologies, products, programs, employers and title the prose
+# names, plus the QPS unit. A block keeps each as a set; the rewrite dropped duplicate tags.
+NAMES = frozenset(
+    "Go, Lua, Java, Bash, Python, PowerShell, C++, .NET Core, iOS, Symbian, QML, RVCT, CJK, mDNS, "
+    "IPv6, Redis, Kafka, Snowflake, AWS, Kubernetes, Apache Calcite, Elasticsearch, Cassandra, "
+    "MongoDB, Couchbase, Spring, Hibernate, Hive, Solr, LevelDB, Lucene, Mason, CI/CD, AI, Claude, "
+    "Gemini, OneNote, iPhone, Nokia, Walmart.com, Visually Similar, MSI Cloud Engineering, "
+    "Office Mobile, Office Mobile Shared Services, Mobile Advertising, QPS, Software Architect, "
+    "Apple, Amazon, Microsoft, eBay, Yahoo!".split(", ")
+)
+# A figure is digits with a unit (30+, 10,000, 100M+, 10x, 200ms) or a magnitude word (millions).
+FIGURE = re.compile(
+    r"(?<![\w.,])\d+(?:[.,]\d+)*(?:ms|x|M)?\+?"
+    r"|(?i:\b(?:hundreds|thousands|millions|billions)\b)"
 )
 # The one intended JSON-LD edit (key: (original, port)): the 16-48 px favicon.ico is too small for
 # structured data, so "image" now names the 180 px apple-touch-icon.png.
@@ -155,6 +172,30 @@ def summary(path):
     return found[0] if found else None
 
 
+def figures(text):
+    """Metrics `text` states, as a set: digits with a unit, and magnitude words in lower case."""
+    return {f if f[0].isdigit() else f.lower() for f in FIGURE.findall(text)}
+
+
+def named(text, names=NAMES):
+    """The `names` that `text` mentions, each as a whole, case-sensitive word."""
+    return {n for n in names if re.search(rf"(?<![\w.+]){re.escape(n)}(?![\w+])", text)}
+
+
+def masthead(path):
+    """The name and the title: the first two blocks of visible text."""
+    return htmlfacts.page(path).visible_lines()[:2]
+
+
+def prose_blocks(path):
+    """(label, text) for the professional summary, then for every .job block, in page order."""
+    lines = htmlfacts.page(path).visible_lines()
+    heading = "Professional Summary"
+    summary_text = lines[lines.index(heading) + 1] if heading in lines[:-1] else ""
+    blocks = [(heading.lower(), summary_text)]
+    return blocks + [(f"job {i} ({job_header(t)})", t) for i, t in enumerate(jobs(path), 1)]
+
+
 def machine_date(text):
     """The <time datetime> value a visible date needs: 'May 2019' -> '2019-05', '2024' -> '2024'."""
     month, _, year = text.rpartition(" ")
@@ -214,6 +255,12 @@ class OriginalFixtureTest(unittest.TestCase):
         ]
         report(self, "JSON_LD_CHANGES out of step with original.html", problems)
 
+    def test_curated_names_are_all_named_in_the_original(self):
+        # A name the original never uses pins nothing, so a typo in NAMES would pass unnoticed.
+        seen = set().union(*(named(text) for _, text in prose_blocks(ORIGINAL)))
+        problems = [f"'{n}' is named in no summary or job block" for n in sorted(NAMES - seen)]
+        report(self, "NAMES out of step with original.html", problems)
+
 
 class ContentParityTest(unittest.TestCase):
     """public/index.html against the approved copy and the normalized original (not 404.html)."""
@@ -228,6 +275,29 @@ class ContentParityTest(unittest.TestCase):
                 f"{len(actual)} chars); if the new wording is approved, run: {REGENERATE}",
                 word_diff(expected, actual, labels=("approved copy", "port")),
             )
+
+    def test_prose_keeps_every_metric_and_technology(self):
+        # The masthead must match the original; each summary and job block must keep its figures
+        # and names, so a changed fact fails here even after approved_copy.txt is regenerated.
+        problems = []
+        if masthead(ORIGINAL) != masthead(INDEX):
+            problems.append(f"masthead: original {masthead(ORIGINAL)}, port {masthead(INDEX)}")
+        old, new = prose_blocks(ORIGINAL), prose_blocks(INDEX)
+        if len(old) != len(new):
+            problems.append(f"{len(new)} prose blocks (summary and jobs), original has {len(old)}")
+        for (label, before), (_, after) in zip(old, new):
+            if not after:
+                problems.append(f"{label}: the port has no such block")
+                continue
+            lost = figures(before) - figures(after)
+            if lost:
+                problems.append(
+                    f"{label}: figures lost {sorted(lost)}; the port has {sorted(figures(after))}"
+                )
+            lost = named(before) - named(after)
+            if lost:
+                problems.append(f"{label}: names lost {sorted(lost)}")
+        report(self, "metrics, technologies or masthead changed", problems)
 
     def test_external_links_are_unchanged(self):
         expected, actual = (
