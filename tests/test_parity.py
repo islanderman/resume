@@ -11,6 +11,14 @@ from resume_kit.common import FIXTURES, INDEX, PUBLIC, fixture_text, read_text, 
 SECTIONS = ("Professional Summary", "Work Experience", "Advisory Roles", "Education")
 ROOT_FILES = ("robots.txt", "sitemap.xml", "llms.txt")
 MISSING_HINT = "parity fixture; copy the mirrored original page into tests/fixtures/"
+# The one intended JSON-LD edit (key: (original, port)): the 16-48 px favicon.ico is too small for
+# structured data, so "image" now names the 180 px apple-touch-icon.png.
+JSON_LD_CHANGES = {
+    "image": (
+        "https://resume.chenyang.us/favicon.ico",
+        "https://resume.chenyang.us/apple-touch-icon.png",
+    )
+}
 
 
 def original(edge=True):
@@ -31,14 +39,25 @@ def word_diff(expected, actual, limit=6):
     return lines
 
 
-def head_signature(facts):
-    ld = []
+def json_ld(facts, changes=None):
+    """Parsed JSON-LD blocks; `changes` maps key -> (old, new) and rewrites only an exact old value."""
+    out = []
     for script in facts.scripts:
         if script.json_ld:
             try:
-                ld.append(json.dumps(json.loads(script.text), sort_keys=True))
+                data = json.loads(script.text)
             except ValueError as exc:
-                ld.append(f"INVALID JSON-LD: {exc}")
+                out.append(f"INVALID JSON-LD: {exc}")
+                continue
+            for key, (old, new) in (changes or {}).items():
+                if isinstance(data, dict) and data.get(key) == old:
+                    data[key] = new
+            out.append(data)
+    return out
+
+
+def head_signature(facts, ld_changes=None):
+    ld = [d if isinstance(d, str) else json.dumps(d, sort_keys=True) for d in json_ld(facts, ld_changes)]
     return {
         "title": facts.title.strip(),
         "description": facts.meta("name", "description"),
@@ -94,6 +113,16 @@ class OriginalFixtureTest(unittest.TestCase):
         # The only analytics on the live page was Cloudflare's edge beacon, never origin code.
         self.assertEqual(trackers.provider_scripts(original(), keep_cwa=True), [])
 
+    def test_intended_json_ld_changes_name_the_original_values(self):
+        # A stale entry would silently stop pinning that key, so each old value must be in the fixture.
+        blocks = [b for b in json_ld(original()) if isinstance(b, dict)]
+        problems = [
+            f"JSON_LD_CHANGES['{key}'] expects {old!r}; the fixture has {[b.get(key) for b in blocks]}"
+            for key, (old, _) in JSON_LD_CHANGES.items()
+            if not any(b.get(key) == old for b in blocks)
+        ]
+        report(self, "JSON_LD_CHANGES out of step with original.html", problems)
+
 
 class ContentParityTest(unittest.TestCase):
     """public/index.html against the normalized original (404.html is not compared)."""
@@ -126,7 +155,8 @@ class ContentParityTest(unittest.TestCase):
         report(self, "tracker scripts dropped or altered", problems)
 
     def test_head_metadata_is_preserved(self):
-        expected, actual = head_signature(original()), head_signature(htmlfacts.page(INDEX))
+        expected = head_signature(original(), JSON_LD_CHANGES)
+        actual = head_signature(htmlfacts.page(INDEX))
         problems = [
             f"{key}: original {expected[key]!r}, port {actual[key]!r}"
             for key in expected
