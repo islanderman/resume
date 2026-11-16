@@ -85,6 +85,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0 # the IndexNow step diffs github.event.before against this commit
           persist-credentials: false
 
       # wrangler's engines field requires Node >= 22.
@@ -116,3 +117,52 @@ jobs:
           [ -n "${url}" ] || { echo 'wrangler reported no deployment URL' >&2; exit 1; }
           curl --fail --silent --show-error --location --retry 5 --retry-delay 5 \
             --retry-all-errors --max-time 30 --output /dev/null "${url}"
+
+      # IndexNow tells Bing, Yandex, Naver, Seznam and Yep that the page changed. It pings only when
+      # this push changed public/, after the smoke test passed. The key is public by design, so the
+      # step needs no credentials; continue-on-error keeps a failed ping from failing the deploy.
+      - name: IndexNow ping
+        continue-on-error: true
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+        run: |
+          # Skip only when git proves public/ is unchanged. An all-zero base (new branch) or one git
+          # cannot read (force-push) counts as changed: a spare ping costs less than a missed one.
+          if [ -n "${BEFORE_SHA//0/}" ] &&
+            git diff --quiet "${BEFORE_SHA}" "${AFTER_SHA}" -- public/; then
+            echo "public/ is unchanged in ${BEFORE_SHA}..${AFTER_SHA}: skipping the IndexNow ping."
+            exit 0
+          fi
+
+          # The key file name is the key, so nothing else here holds a copy to keep in sync.
+          keys=()
+          for file in public/*.txt; do
+            if [[ "${file}" =~ ^public/([0-9a-f]{32})\.txt$ ]]; then
+              keys+=("${BASH_REMATCH[1]}")
+            fi
+          done
+          if [ "${#keys[@]}" -ne 1 ]; then
+            echo "Want exactly one public/<32 hex>.txt key file, found ${#keys[@]}." >&2
+            exit 1
+          fi
+          key="${keys[0]}"
+
+          host='resume.chenyang.us'
+          payload="$(jq --null-input --compact-output --arg host "${host}" --arg key "${key}" '{
+            host: $host,
+            key: $key,
+            keyLocation: "https://\($host)/\($key).txt",
+            urlList: ["https://\($host)/"]
+          }')"
+
+          # 200 means accepted; 202 means accepted with key validation still pending.
+          status="$(curl --silent --show-error --max-time 30 --connect-timeout 10 \
+            --output /dev/null --write-out '%{http_code}' \
+            --header 'Content-Type: application/json; charset=utf-8' \
+            --data "${payload}" 'https://api.indexnow.org/indexnow')" || true
+          echo "IndexNow answered HTTP ${status:-none}."
+          if [ "${status}" != 200 ] && [ "${status}" != 202 ]; then
+            echo '::warning title=IndexNow::The ping failed; the deploy is not affected.'
+            exit 1
+          fi

@@ -26,7 +26,8 @@ repos:
 
       # File formatting and cleanup
       - id: end-of-file-fixer
-        exclude: \.(svg|png|jpe?g|gif|ico|pdf)$
+        # The IndexNow key file holds the key and nothing else, so it must end without a newline.
+        exclude: \.(svg|png|jpe?g|gif|ico|pdf)$|^public/[0-9a-f]{32}\.txt$
       - id: fix-byte-order-marker
       - id: mixed-line-ending
         args: ['--fix=lf']
