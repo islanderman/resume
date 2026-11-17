@@ -27,6 +27,7 @@ from resume_kit.common import (
 NOT_FOUND = PUBLIC / "404.html"
 SITEMAP = PUBLIC / "sitemap.xml"
 ROBOTS = PUBLIC / "robots.txt"
+LLMS = PUBLIC / "llms.txt"
 MANIFEST_HREF = "/site.webmanifest"
 TITLE_MAX = 60
 DESCRIPTION_RANGE = (120, 160)
@@ -79,6 +80,9 @@ NOT_FACTS = frozenset(
 PHONE = re.compile(r"\(?\b\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b")
 # The owner forbids any GitHub link: repositories, gists, Pages sites and raw files alike.
 GITHUB = re.compile(r"github\.com|github\.io|githubusercontent\.com", re.I)
+# Owner rule: only people read the email address. Cloudflare's Email Address Obfuscation hides it
+# in page markup but skips <script> blocks and plain-text files, so JSON-LD and llms.txt omit it.
+EMAIL = re.compile(r"mailto:|[\w.%+-]+@[\w-]+(?:\.[\w-]+)+", re.I)
 # Owner-authored facts the page never shows, carried over from the original JSON-LD
 # (tests/fixtures/original.html) on the owner's word. Only these two skip the visibility rule.
 OWNER_FACTS = frozenset(
@@ -572,17 +576,21 @@ class StructuredDataTest(unittest.TestCase):
             owned = ("Person", "knowsLanguage", str(tag)) in OWNER_FACTS
             if str(tag).split("-")[0].lower() != lang and not owned:
                 problems.append(f"knowsLanguage {tag!r}: the page states only its own language")
-        if person.get("email"):
-            address = person["email"].removeprefix("mailto:")
-            linked = f"mailto:{address}" in refs.external_hrefs(facts())
-            if address.casefold() not in text or not linked:
-                problems.append(f"email {person['email']!r} is not shown and linked on the page")
         if person.get("telephone"):
             phones = {re.sub(r"\D", "", p) for p in PHONE.findall(facts().visible_text())}
             digits = re.sub(r"\D", "", person["telephone"])
             if not any(n and digits.endswith(n) for n in phones):
                 problems.append(f"telephone {person['telephone']!r} is not shown on the page")
         report(self, "JSON-LD facts that a reader cannot see", problems)
+
+    def test_json_ld_names_no_email_address(self):
+        problems = []
+        for path in public_files(".html", ".htm"):
+            for at, key, value, _ in walk(json_ld_blocks(facts(path))):
+                texts = [v for v in as_list(value) if isinstance(v, str)]
+                if key == "email" or any(EMAIL.search(t) for t in texts):
+                    problems.append(f"{rel(path)}: {at}.{key} {value!r}")
+        report(self, "JSON-LD that names an email address", problems)
 
 
 class ManifestTest(unittest.TestCase):
@@ -676,6 +684,14 @@ class RootFilesTest(unittest.TestCase):
         elif date.fromisoformat(match.group(1)) > latest_today():
             problems.append(f"'Last updated: {match.group(1)}' is in the future")
         report(self, rel(ROBOTS), problems)
+
+    def test_llms_txt_links_the_site_and_profiles_but_no_email_address(self):
+        text = read_text(LLMS, "AI crawlers read llms.txt")
+        problems = [f"names {m.group(0)!r}" for m in EMAIL.finditer(text)]
+        for url in [canonical()] + as_list(node("person").get("sameAs")):
+            if f"<{url}>" not in text:
+                problems.append(f"does not link <{url}>")
+        report(self, rel(LLMS), problems)
 
 
 class LinksAndMarkupTest(unittest.TestCase):
