@@ -362,11 +362,9 @@
       content: '|';
     }
 
-    /*
-     * Phones and tablet screens: a wrapped line would leave a separator dangling, so the links get
-     * their own rows and gaps. Desktop screens and print keep the one-line, separated row.
-     */
-    @media (width < 600px), screen and (width < 1024px) {
+    /* Phones and tablets: a wrapped row would strand a separator, so links get their own rows.
+       In em, a larger default font keeps the rows; desktop screens and print keep one row. */
+    @media (width < 600px), screen and (width < 64em) {
       display: flex;
       flex-direction: column;
       align-items: center;

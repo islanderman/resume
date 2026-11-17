@@ -165,5 +165,19 @@ class ContactSeparatorTest(unittest.TestCase):
                     )
         report(self, "contact separators by layout", problems)
 
+    def test_contact_rows_switch_on_the_readers_font_size(self):
+        # A media query em is the reader's default font size: 64em is 1024px at 16px, and a
+        # larger default font keeps the stacked rows until the one-line row fits.
+        queries = {
+            " ".join(alt.split())
+            for rule in pagecss.page_sheet().rules
+            if rule.selector == ".contact .sep"
+            and any(prop == "display" and value == "none" for prop, value, _ in rule.decls)
+            for query in rule.media
+            for alt in cssscan.alternatives(query)
+        }
+        if "screen and (width < 64em)" not in queries:
+            self.fail(f"the stacked contact rows need 'screen and (width < 64em)'; found {queries}")
+
 if __name__ == "__main__":
     unittest.main()
