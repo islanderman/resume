@@ -1,35 +1,51 @@
 # Jerry Yang — Software Architect
 
-> Resume of Jerry Yang (Chen Yang), Software Architect with 20+ years of experience delivering high-scale platforms at Apple, Amazon, Microsoft, eBay, Yahoo!, Walmart, Roblox, and Addepar.
+> Resume of Jerry Yang (Chen Yang), Software Architect with 20+ years delivering high-scale platforms at Apple, Amazon, Microsoft, eBay, and Yahoo! Platforms span cloud, on-premises, and embedded systems with vendor-agnostic designs. Led AI and machine learning initiatives, including automated model deployment, intelligent manufacturing workflows, and autonomous reasoning systems that orchestrate multi-step operations.
 
 ## Contact
-- Email: zhenyoung@gmail.com
+
+- Email: <zhenyoung@gmail.com>
 - Phone: +1-917-582-2826
-- Web: https://resume.chenyang.us/
+- Web: <https://resume.chenyang.us/>
 
 ## Current Role
-Senior Software Infrastructure Engineer / Technical Lead at **Apple Inc.** (Sunnyvale, CA — May 2019 – Present). Architecting infrastructure for a 30+ engineer manufacturing organization. Areas: ML platform automating model deployment to factories, MSI Cloud Engineering migration to Snowflake/Kafka/Redis on AWS+Kubernetes, embedded systems conversion from iOS to Go for production-line communication, automated AI code/compliance reviewer with multi-model (Claude, Gemini) PR review and CI/CD policy gating, and an internal AI agent plugin ecosystem for code review, security, release engineering, and multi-agent orchestration.
+
+Senior Software Infrastructure Engineer / Technical Lead at **Apple Inc.** (Sunnyvale, CA — May 2019 – Present). Architects infrastructure for a manufacturing organization of 30+ engineers. Areas:
+
+- Quality sampling engine processing millions of daily inspections (Go, Lua, Redis).
+- Machine learning platform automating model deployment to factories.
+- MSI Cloud Engineering initiative: migrating manufacturing infrastructure to cloud vendors, including Snowflake adoption for cross-team data access and Kafka/Redis event-driven pipelines (Java, AWS, Kubernetes).
+- Embedded systems conversion from iOS to Go, enabling bi-directional production-line communication at remote factories (Bash, Python, PowerShell, mDNS, IPv6).
+- Automated AI code and compliance reviewer for the organization: multi-model (Claude, Gemini) pull request review, severity-ranked findings, and security and policy-compliance gating (Python, Go, Bash).
+- Autonomous fix-test-commit-reply cycles wired into CI/CD.
+- Internal AI agent plugin ecosystem (agents, commands, reusable skills) for code review, security, release engineering, and multi-agent orchestration, adopted across engineering teams.
 
 ## Career Highlights
-- **Apple** (2019–Present) — Software Architect, manufacturing infrastructure, ML platform, AI initiatives.
-- **Roblox** (2018–2019) — Principal Software Engineer, Infrastructure Services. Service reliability + .NET Core migration.
-- **eBay** (2016–2018) — Principal Software Engineer, Data Services. Architected unified data query layer using Apache Calcite over 7+ heterogeneous stores (Elasticsearch, Cassandra, MongoDB, Couchbase) on Kubernetes.
-- **WalmartLabs** (2012–2016) — Staff Software Engineer. Smart Sourcing supply-chain optimization engine; Smart Pricing big data infrastructure (Java, Spring, Hibernate, Hive, Cassandra, Solr, LevelDB).
-- **Addepar** (2013–2014) — Data + Architecture teams. 10x service performance optimization.
-- **Amazon** (2011–2012) — SDE, Search Experience. Visually Similar search, Mason-to-Java migration, mobile search, multi-language CJK search via Lucene.
-- **Microsoft** (2008–2011) — SDE II. Office Mobile Shared Services (OneNote on Symbian, C++/RVCT/QML); Mobile Advertising automated test framework.
-- **Yahoo!** (2007–2008, intern 2006) — Search Marketing. Ad keyword canonicalization service in C++ at 10,000 QPS across 20+ markets.
+
+- **Apple** (2019–Present) — Senior Software Infrastructure Engineer / Technical Lead. Manufacturing infrastructure, machine learning platform, AI initiatives.
+- **Roblox** (2018–2019) — Principal Software Engineer, Infrastructure Services. Contributed to platform infrastructure supporting 100M+ monthly active users; worked on service reliability and .NET Core migration.
+- **eBay** (2016–2018) — Principal Software Engineer, Data Services and Solutions. Architected a unified data query layer using Apache Calcite over 7+ heterogeneous data stores (Elasticsearch, Cassandra, MongoDB, Couchbase, and more), eliminating the need for teams to write store-specific queries. Deployed on Kubernetes, it became eBay's standard cross-platform data access interface.
+- **@WalmartLabs** (2014–2016) — Staff Software Engineer, Smart Sourcing. Built the sourcing optimization engine for Walmart.com's supply chain, reducing fulfillment costs by algorithmically selecting optimal distribution centers per order; delivered real-time dashboards and alerts for supply chain operators.
+- **Addepar** (2013–2014) — Software Engineer. Worked on the Data team, then the Architecture team; parallelized and optimized services to perform 10x better.
+- **@WalmartLabs** (2012–2013) — Staff Software Engineer, Smart Pricing. Designed the big data infrastructure powering daily pricing strategy (Java, Spring, Hibernate, Hive, Cassandra, Solr, LevelDB); built APIs and dashboards for pricing analysts across millions of SKUs.
+- **Amazon** (2011–2012) — Software Development Engineer, Search Experience. Visually Similar search, Mason-to-Java migration, mobile search, and multi-language search with CJK tokenization via Lucene.
+- **Microsoft** (2008–2011) — Software Development Engineer II. Office Mobile Shared Services (OneNote on Symbian; C++, RVCT compiler, QML); Mobile Advertising automated test framework for iPhone ad components.
+- **Yahoo!** (2007–2008; intern 2006) — Technical Yahoo!, Yahoo! Search Marketing. Ad keyword canonicalization service (C++) powering targeting across 20+ international markets at 10,000 QPS; as an intern, a multilingual test framework (C++) for Yahoo! Search's semantic library.
 
 ## Advisory
-- **AWS In-Memory Databases Product Advisory Council** member, 2024–2025.
+
+- **AWS In-Memory Databases Product Advisory Council** member, 2024–2025. Appointed by AWS to provide product direction and industry feedback on in-memory database services.
 
 ## Education
-- **M.S. Computer Science**, New York University (2005–2007).
-- **B.S. Computer Science**, Stony Brook University (2003–2005).
+
+- **M.S. Computer Science**, New York University, New York, NY (2005–2007).
+- **B.S. Computer Science**, Stony Brook University, Stony Brook, NY (2003–2005).
 
 ## Specialties
-Distributed systems, cloud and on-premise infrastructure, embedded systems, AI/ML platforms, automated reasoning. Languages: Java, Go, Python, Swift, Lua, C++, Bash, PowerShell. Stack: Kubernetes, AWS, Kafka, Redis, PostgreSQL, Snowflake, Cassandra, Elasticsearch, Hive, Solr.
+
+Cloud, on-premises, and embedded systems; AI and machine learning; machine learning platform; autonomous reasoning systems; multi-agent orchestration; big data. Languages: Java, Go, Python, Lua, C++, Bash, PowerShell. Stack: Kubernetes, AWS, Kafka, Redis, Snowflake, Cassandra, Elasticsearch, Hive, Solr.
 
 ## Canonical
-- Full HTML resume: https://resume.chenyang.us/
-- Sitemap: https://resume.chenyang.us/sitemap.xml
+
+- Full HTML resume: <https://resume.chenyang.us/>
+- Sitemap: <https://resume.chenyang.us/sitemap.xml>
