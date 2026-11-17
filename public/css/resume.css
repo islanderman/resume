@@ -357,8 +357,16 @@
       }
     }
 
-    /* Phones: separators would dangle at wrapped line ends, so links get their own rows. */
-    @media (width < 600px) {
+    /* Generated, so the markup holds no '|' text; the span is aria-hidden, so it is never read. */
+    & .sep::before {
+      content: '|';
+    }
+
+    /*
+     * Phones and tablet screens: a wrapped line would leave a separator dangling, so the links get
+     * their own rows and gaps. Desktop screens and print keep the one-line, separated row.
+     */
+    @media (width < 600px), screen and (width < 1024px) {
       display: flex;
       flex-direction: column;
       align-items: center;

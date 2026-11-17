@@ -6,12 +6,15 @@ The no-overflow check at 390/768/1024/1440 px runs separately in a browser.
 import re
 import unittest
 
-from resume_kit import cssscan, htmlfacts, pagecss
-from resume_kit.common import INDEX, report
+from resume_kit import cssscan, elements, htmlfacts, pagecss
+from resume_kit.common import INDEX, public_files, rel, report
 
 MIN_ZOOM_CEILING = 5.0  # WCAG 1.4.4: a maximum-scale below 5 stops users from zooming text.
 MEASURE_EM = (44.0, 52.0)  # Scanned bullets: about 105 characters, the printed line's length.
 WIDE_SCREENS = (600, 768, 1024, 1440)  # Tablet and desktop; on phones the viewport sets the width.
+# Contact separators show only where the line never wraps: desktop screens and print.
+SEPARATED = ((1100, "screen"), (1440, "screen"), (720, "print"))
+STACKED = ((320, "screen"), (390, "screen"), (600, "screen"), (768, "screen"), (1000, "screen"))
 
 
 def viewport_settings(content):
@@ -128,6 +131,39 @@ class MeasureProblemsSelfTest(unittest.TestCase):
         problems = measure_problems(cssscan.parse(css))
         self.assertEqual([p.split("px")[0] for p in problems], ["at 1024", "at 1440"], problems)
 
+
+
+def _with_class(name):
+    return lambda tag, attrs, parents: name in elements.classes(attrs)
+
+
+class ContactSeparatorTest(unittest.TestCase):
+    def test_contact_markup_has_no_literal_separators(self):
+        problems = []
+        for path in public_files(".html", ".htm"):
+            for e in elements.pick_in(path, _with_class("contact")):
+                if "|" in e.text:
+                    problems.append(f"{rel(path)}: the contact text holds a literal '|'")
+            for e in elements.pick_in(path, _with_class("sep")):
+                if e.text or e.attrs.get("aria-hidden") != "true":
+                    problems.append(f"{rel(path)}: a .sep is not empty and aria-hidden='true'")
+        report(self, "contact separators in the markup", problems)
+
+    def test_separators_show_only_where_the_contact_line_never_wraps(self):
+        sheet = pagecss.page_sheet()
+        problems = []
+        for cases, wanted in ((SEPARATED, True), (STACKED, False)):
+            for width, media in cases:
+                rules = cssscan.effective(sheet, width, media)
+                content = rules.get(".contact .sep::before", {}).get("content", ("",))[0]
+                display = rules.get(".contact .sep", {}).get("display", ("",))[0]
+                shown = content in ("'|'", '"|"') and display != "none"
+                if shown != wanted:
+                    problems.append(
+                        f"{media} {width}px: separators {'shown' if shown else 'hidden'} "
+                        f"(content {content!r}, display {display!r})"
+                    )
+        report(self, "contact separators by layout", problems)
 
 if __name__ == "__main__":
     unittest.main()
