@@ -12,7 +12,17 @@ from urllib.parse import urlsplit
 
 from resume_kit import elements, htmlfacts, refs, svgcheck
 from resume_kit import headers as hdr
-from resume_kit.common import HEADERS_FILE, INDEX, PUBLIC, ROOT, read_json, read_text, rel, report
+from resume_kit.common import (
+    HEADERS_FILE,
+    INDEX,
+    PUBLIC,
+    ROOT,
+    public_files,
+    read_json,
+    read_text,
+    rel,
+    report,
+)
 
 NOT_FOUND = PUBLIC / "404.html"
 SITEMAP = PUBLIC / "sitemap.xml"
@@ -20,6 +30,9 @@ ROBOTS = PUBLIC / "robots.txt"
 MANIFEST_HREF = "/site.webmanifest"
 TITLE_MAX = 60
 DESCRIPTION_RANGE = (120, 160)
+# Bing Webmaster Tools flags any page whose title or meta description falls outside these lengths.
+BING_TITLE_RANGE = (10, 60)
+BING_DESCRIPTION_RANGE = (25, 160)
 ROBOTS_DIRECTIVES = (
     "index",
     "follow",
@@ -294,6 +307,28 @@ class HeadTagsTest(unittest.TestCase):
             if not low <= len(value) <= high:
                 problems.append(f"{len(value)} characters, expected {low}-{high}: {value!r}")
         report(self, '<meta name="description">', problems)
+
+    def test_every_page_has_one_title_and_description_bing_accepts(self):
+        problems = []
+        for path in public_files(".html", ".htm"):
+            page = facts(path)
+            titles = elements.pick_in(
+                path,
+                lambda tag, attrs, parents: tag == "title" and all(t != "svg" for t, _ in parents),
+            )
+            if len(titles) != 1:
+                problems.append(f"{rel(path)}: {len(titles)} <title> elements, expected 1")
+            descriptions = tag_values(page, "name", "description")
+            if len(descriptions) != 1:
+                problems.append(f"{rel(path)}: {len(descriptions)} description tags, expected 1")
+            sized = [("<title>", " ".join(page.title.split()), BING_TITLE_RANGE)] if titles else []
+            sized += [("description", d, BING_DESCRIPTION_RANGE) for d in descriptions]
+            for what, value, (low, high) in sized:
+                if not low <= len(value) <= high:
+                    problems.append(
+                        f"{rel(path)}: {what} has {len(value)} characters, expected {low}-{high}"
+                    )
+        report(self, "titles and descriptions outside Bing's ranges", problems)
 
     def test_robots_meta_allows_full_snippets_and_large_previews(self):
         values = tag_values(facts(), "name", "robots")
