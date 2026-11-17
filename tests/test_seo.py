@@ -735,9 +735,12 @@ class LinksAndMarkupTest(unittest.TestCase):
         sources = []
         for path in public_files(".html", ".htm"):
             sources.append((rel(path), read_text(path, "page the site serves")))
-            sources += [(f"{rel(path)} JSON-LD", json.dumps(b)) for b in json_ld_blocks(facts(path))]
+            blocks = json_ld_blocks(facts(path))
+            sources += [(f"{rel(path)} JSON-LD", json.dumps(b)) for b in blocks]
         sources.append((rel(LLMS), read_text(LLMS, "llms.txt describes the site to AI crawlers")))
-        problems = [f"{where}: {m.group(0)}" for where, text in sources for m in GITHUB.finditer(text)]
+        problems = [
+            f"{where}: {m.group(0)}" for where, text in sources for m in GITHUB.finditer(text)
+        ]
         report(self, "GitHub links the owner forbids", problems)
 
 

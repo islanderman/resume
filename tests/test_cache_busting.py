@@ -162,7 +162,7 @@ def header_rules():
 
 
 def stylesheet_path(page=INDEX):
-    """Root-absolute path and query of the one stylesheet `page` loads, as the browser resolves it."""
+    """Root-absolute path and query of the one stylesheet `page` loads, as a browser resolves it."""
     hrefs = [
         a.get("href", "").strip()
         for a in htmlfacts.page(page).links
