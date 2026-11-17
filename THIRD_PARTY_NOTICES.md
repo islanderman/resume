@@ -3,8 +3,8 @@
 The resume shows the logos of the employers and schools it lists. Apple devices set its text in
 their own system font, which the site never ships; every other device gets one self-hosted font.
 Each icon and the font below name their source, pinned to the version that was fetched, and their
-license. The icon license texts that require attribution follow in full; the font's license ships
-next to the font file.
+license. The icon license texts that require attribution follow in full; the font's license text
+is kept in this repository, and the font file carries its own notice.
 
 Each slug is `public/img/icons/<slug>.svg`, except `nyu` and `stonybrook`: they are 96×96 PNG
 fallbacks, because no usable vector source was found. `favicon` is `public/favicon.ico` and
@@ -122,8 +122,10 @@ Covers `public/fonts/noto-sans-latin-wght-normal.woff2`. Upstream project:
 Copyright 2022 The Noto Project Authors (https://github.com/notofonts/latin-greek-cyrillic)
 ```
 
-That notice and the full license text ship next to the font as `public/fonts/OFL.txt`, served at
-<https://resume.chenyang.us/fonts/OFL.txt>.
+The full license text, headed by that notice, is kept in this repository as
+`licenses/NotoSans-OFL.txt`. The site does not serve it, because the notice names a GitHub URL. The
+served font carries its own notice, per OFL condition 2: its name table holds the copyright above
+as nameID 0 and the license URL <https://openfontlicense.org> as nameID 14.
 
 ## Trademarks
 

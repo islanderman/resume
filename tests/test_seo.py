@@ -27,7 +27,6 @@ from resume_kit.common import (
 NOT_FOUND = PUBLIC / "404.html"
 SITEMAP = PUBLIC / "sitemap.xml"
 ROBOTS = PUBLIC / "robots.txt"
-LLMS = PUBLIC / "llms.txt"
 MANIFEST_HREF = "/site.webmanifest"
 TITLE_MAX = 60
 DESCRIPTION_RANGE = (120, 160)
@@ -739,17 +738,22 @@ class LinksAndMarkupTest(unittest.TestCase):
         ]
         report(self, "render-blocking resources", problems)
 
-    def test_no_github_link_in_the_pages_json_ld_or_llms_txt(self):
+    def test_no_github_url_in_any_file_under_public(self):
+        # Every file as raw bytes, so no file type escapes. Compressed data is not decoded: the
+        # woff2 name table keeps the verbatim Noto copyright that OFL condition 2 requires.
+        files = public_files()
+        self.assertIn(INDEX, files, f"{rel(INDEX)} is missing, so the scan would pass on nothing")
         sources = []
-        for path in public_files(".html", ".htm"):
-            sources.append((rel(path), read_text(path, "page the site serves")))
-            blocks = json_ld_blocks(facts(path))
-            sources += [(f"{rel(path)} JSON-LD", json.dumps(b)) for b in blocks]
-        sources.append((rel(LLMS), read_text(LLMS, "llms.txt describes the site to AI crawlers")))
+        for path in files:
+            # latin-1 maps each byte to one character: an ASCII URL matches in UTF-8 and binaries.
+            sources.append((rel(path), path.read_bytes().decode("latin-1")))
+            if path.suffix.lower() in (".html", ".htm"):
+                blocks = json_ld_blocks(facts(path))
+                sources += [(f"{rel(path)} JSON-LD", json.dumps(b)) for b in blocks]
         problems = [
             f"{where}: {m.group(0)}" for where, text in sources for m in GITHUB.finditer(text)
         ]
-        report(self, "GitHub links the owner forbids", problems)
+        report(self, "GitHub URLs the owner forbids", problems)
 
 
 class GithubPatternSelfTest(unittest.TestCase):
