@@ -41,6 +41,7 @@ ROBOTS_DIRECTIVES = (
     "max-snippet:-1",
     "max-video-preview:-1",
 )
+CARD_HTML = ROOT / "tools" / "og-card" / "card.html"
 CARD_SIZE = (1200, 630)
 CARD_MAX_BYTES = 100_000
 OG_PREFIXES = ("og:", "profile:")
@@ -446,6 +447,13 @@ class SocialTagsTest(unittest.TestCase):
         if not rel(path).startswith("public/img/og/"):
             problems.append(f"{rel(path)} is not under public/img/og/")
         report(self, "social card image", problems)
+
+    def test_card_uses_the_self_hosted_ofl_font_never_the_apple_system_font(self):
+        # The card is a published PNG; Apple licenses its fonts for system use only.
+        text = CARD_HTML.read_text(encoding="utf-8")
+        match = re.search(r"--font-sans:\s*([^;]+);", text)
+        first = match.group(1).split(",")[0].strip().strip("'\"") if match else None
+        self.assertEqual(first, "Noto Sans", "card.html must set --font-sans to 'Noto Sans' first")
 
 
 class StructuredDataTest(unittest.TestCase):
