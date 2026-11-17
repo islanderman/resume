@@ -4,6 +4,7 @@ font preload must name its @font-face URL exactly, or the browser fetches the fo
 
 import hashlib
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -161,6 +162,15 @@ def header_rules():
     return [r for r in hdr.parse(text).rules if r.host is None]
 
 
+def pages_match(pattern, path):
+    """True when a Pages _headers pattern matches `path`: '*' spans, ':name' is one segment."""
+    parts = re.split(r"(\*|:[A-Za-z]\w*)", pattern)
+    rx = "".join(
+        ".*" if t == "*" else "[^/]+" if t.startswith(":") else re.escape(t) for t in parts
+    )
+    return re.fullmatch(rx, path) is not None
+
+
 def stylesheet_path(page=INDEX):
     """Root-absolute path and query of the one stylesheet `page` loads, as a browser resolves it."""
     hrefs = [
@@ -215,18 +225,20 @@ class CacheBustingTest(unittest.TestCase):
 
 
 class EarlyHintsTest(unittest.TestCase):
-    # Pages sends these Link headers as a 103 before the page; a stale URL preloads a dead file.
-    PATHS = ("/", "/index.html")
+    # Pages sends the root's Link header as a 103 before the page; a stale URL preloads a dead file.
+    # /index.html only redirects to /, so a Link there rides the redirect: one rule, one value.
+    ROOT_PATHS = ("/", "/index.html")
 
     def test_home_page_hints_preload_the_stylesheet_url_the_page_loads(self):
         sheet = stylesheet_path()
-        want = f"<{sheet}>; rel=preload; as=style"
-        rules = {r.pattern: r for r in header_rules()}
-        problems = []
-        for path in self.PATHS:
-            got = rules[path].value("link") if path in rules else None
-            if got != want:
-                problems.append(f"'{path}' Link is {got!r}, expected {want!r}")
+        want = [("/", f"<{sheet}>; rel=preload; as=style")]
+        links = [
+            (r.pattern, value)
+            for r in header_rules()
+            if any(pages_match(r.pattern, path) for path in self.ROOT_PATHS)
+            for value in r.headers.get("link", [])
+        ]
+        problems = [] if links == want else [f"root Link headers are {links}, expected {want}"]
         target, why = refs.resolve(sheet, PUBLIC)
         if target is None:
             problems.append(f"{sheet}: {why}")
@@ -258,6 +270,18 @@ class FontPreloadTest(unittest.TestCase):
         elif font_faces() and not any(where == rel(INDEX) for where, _, _ in preloads):
             problems = [f"{rel(INDEX)} preloads no font, so its request waits for the CSS"]
         report(self, "font preload policy", problems)
+
+
+class PagesMatchSelfTest(unittest.TestCase):
+    def test_splats_placeholders_and_exact_paths(self):
+        cases = [
+            ("/*", "/", True), ("/*", "/index.html", True), ("/", "/", True),
+            ("/", "/index.html", False), ("/css/*", "/", False), ("/css/*", "/css/a.css", True),
+            ("/:page/x", "/a/x", True), ("/:page/x", "/a/b/x", False), ("/a.b", "/aXb", False),
+        ]  # fmt: skip
+        for pattern, path, want in cases:
+            with self.subTest(pattern=pattern, path=path):
+                self.assertEqual(pages_match(pattern, path), want)
 
 
 class VersionProblemsSelfTest(unittest.TestCase):
