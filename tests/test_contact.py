@@ -13,9 +13,10 @@ from resume_kit.htmlfacts import VOID
 
 NOT_FOUND = PUBLIC / "404.html"
 LINKEDIN = "https://www.linkedin.com/in/chenyang"
+ADDRESS = "zhenyoung@gmail.com"
 ITEMS = (
     "Cell: (917) 582-2826",
-    "zhenyoung@gmail.com",
+    ADDRESS,
     "https://resume.chenyang.us/",
     "linkedin.com/in/chenyang",
 )
@@ -23,7 +24,7 @@ ITEMS = (
 PAGE_ITEMS = {INDEX: ITEMS, NOT_FOUND: ITEMS[:3]}
 # (href, rel tokens it must carry, accessible name) of each contact link on index.html.
 LINKS = (
-    ("mailto:zhenyoung@gmail.com", {"me"}, "zhenyoung@gmail.com"),
+    (f"mailto:{ADDRESS}", {"me"}, ADDRESS),
     ("https://resume.chenyang.us", set(), "https://resume.chenyang.us/"),
     (LINKEDIN, {"me"}, "linkedin.com/in/chenyang"),
 )
@@ -223,6 +224,17 @@ class ContactListTest(unittest.TestCase):
             # WCAG 2.5.3: the visible text is the name; no ARIA name may replace it.
             problems += [f"link {href!r} carries {k}" for k in ARIA_NAMES if k in a[1]]
         report(self, "contact links", problems)
+
+    def test_both_pages_link_the_address_with_mailto(self):
+        # Visitors need the mailto: link, and Cloudflare obfuscates it at the edge. The edge skips
+        # JSON-LD and llms.txt, so tests/test_seo.py keeps the address out of both.
+        problems = []
+        for path in PAGE_ITEMS:
+            anchors = [h for _, h in items(path) if is_tag(h, "a") and name_of(h) == ADDRESS]
+            hrefs = [a[1].get("href") for a in anchors]
+            if hrefs != [f"mailto:{ADDRESS}"]:
+                problems.append(f"{rel(path)}: {ADDRESS} links {hrefs}, expected one mailto: link")
+        report(self, "visible email links", problems)
 
     def test_linkedin_is_the_only_profile_link(self):
         own = refs.host_of("https://resume.chenyang.us/")
