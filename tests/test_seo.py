@@ -64,8 +64,6 @@ TWITTER_REQUIRED = (
 )
 X_HOSTS = ("x.com", "twitter.com")
 SECTION_IDS = ("summary", "experience", "advisory", "education")
-BELOW_THE_FOLD = ("education",)
-RASTER = re.compile(r"\.(png|jpe?g|gif|webp|avif)$", re.I)
 SITEMAP_NS = {
     "sm": "http://www.sitemaps.org/schemas/sitemap/0.9",
     "image": "http://www.google.com/schemas/sitemap-image/1.1",
@@ -281,18 +279,6 @@ def manifest():
     if not isinstance(data, dict):
         raise AssertionError(f"{rel(path)} must hold a JSON object")
     return data
-
-
-def below_the_fold_srcs():
-    """src values of the images inside the sections that sit below the first screen."""
-    return {
-        e.attrs.get("src", "")
-        for e in elements.pick_in(
-            INDEX,
-            lambda tag, attrs, parents: tag == "img"
-            and any(a.get("aria-labelledby") in BELOW_THE_FOLD for _, a in parents),
-        )
-    }
 
 
 class HeadTagsTest(unittest.TestCase):
@@ -711,8 +697,7 @@ class LinksAndMarkupTest(unittest.TestCase):
         problems += [f"#{i} labels no <section>" for i in SECTION_IDS if i not in labelled]
         report(self, "section ids", problems)
 
-    def test_images_have_alt_size_async_decoding_and_lazy_only_below_the_fold(self):
-        below = below_the_fold_srcs()
+    def test_images_have_alt_size_async_decoding_and_eager_loading(self):
         problems = []
         for attrs in facts().images:
             src = attrs.get("src", "")
@@ -722,12 +707,9 @@ class LinksAndMarkupTest(unittest.TestCase):
                 problems.append(f"{src}: no integer width and height")
             if attrs.get("decoding") != "async":
                 problems.append(f"{src}: decoding is {attrs.get('decoding')!r}, expected 'async'")
-            lazy = attrs.get("loading") == "lazy"
-            late = bool(RASTER.search(urlsplit(src).path)) and src in below
-            if lazy and not late:
-                problems.append(f"{src}: lazy, but only raster images below the fold may be")
-            if late and not lazy:
-                problems.append(f"{src}: a raster image below the fold needs loading='lazy'")
+            # Each logo is under 7 KB, and a lazy one can be missing from a full-page capture.
+            if attrs.get("loading") == "lazy":
+                problems.append(f"{src}: loading='lazy'; the logos load eagerly")
         report(self, "images", problems)
 
     def test_no_new_render_blocking_resources(self):
