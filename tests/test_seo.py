@@ -27,6 +27,7 @@ from resume_kit.common import (
 NOT_FOUND = PUBLIC / "404.html"
 SITEMAP = PUBLIC / "sitemap.xml"
 ROBOTS = PUBLIC / "robots.txt"
+LLMS = PUBLIC / "llms.txt"
 MANIFEST_HREF = "/site.webmanifest"
 TITLE_MAX = 60
 DESCRIPTION_RANGE = (120, 160)
@@ -76,6 +77,8 @@ NOT_FACTS = frozenset(
     "encodingFormat credentialCategory knowsLanguage email telephone".split()
 )
 PHONE = re.compile(r"\(?\b\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b")
+# The owner forbids any GitHub link: repositories, gists, Pages sites and raw files alike.
+GITHUB = re.compile(r"github\.com|github\.io|githubusercontent\.com", re.I)
 # Owner-authored facts the page never shows, carried over from the original JSON-LD
 # (tests/fixtures/original.html) on the owner's word. Only these two skip the visibility rule.
 OWNER_FACTS = frozenset(
@@ -727,6 +730,28 @@ class LinksAndMarkupTest(unittest.TestCase):
             if s.attrs.get("src") and "async" not in s.attrs and "defer" not in s.attrs
         ]
         report(self, "render-blocking resources", problems)
+
+    def test_no_github_link_in_the_pages_json_ld_or_llms_txt(self):
+        sources = []
+        for path in public_files(".html", ".htm"):
+            sources.append((rel(path), read_text(path, "page the site serves")))
+            sources += [(f"{rel(path)} JSON-LD", json.dumps(b)) for b in json_ld_blocks(facts(path))]
+        sources.append((rel(LLMS), read_text(LLMS, "llms.txt describes the site to AI crawlers")))
+        problems = [f"{where}: {m.group(0)}" for where, text in sources for m in GITHUB.finditer(text)]
+        report(self, "GitHub links the owner forbids", problems)
+
+
+class GithubPatternSelfTest(unittest.TestCase):
+    def test_pattern_matches_every_github_host_and_nothing_else(self):
+        for url in (
+            "https://github.com/u",
+            "https://GIST.github.com/u",
+            "https://u.github.io/",
+            "https://raw.githubusercontent.com/u/r/f",
+        ):
+            with self.subTest(url):
+                self.assertRegex(url, GITHUB)
+        self.assertNotRegex("https://www.linkedin.com/in/chenyang", GITHUB)
 
 
 if __name__ == "__main__":
