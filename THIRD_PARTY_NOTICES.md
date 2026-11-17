@@ -1,9 +1,10 @@
 # Third-Party Notices
 
-The resume shows the logos of the employers and schools it lists, and sets its text in one
-self-hosted font. Each icon and the font below name their source, pinned to the version that was
-fetched, and their license. The icon license texts that require attribution follow in full; the
-font's license ships next to the font file.
+The resume shows the logos of the employers and schools it lists. Apple devices set its text in
+their own system font, which the site never ships; every other device gets one self-hosted font.
+Each icon and the font below name their source, pinned to the version that was fetched, and their
+license. The icon license texts that require attribution follow in full; the font's license ships
+next to the font file.
 
 Each slug is `public/img/icons/<slug>.svg`, except `nyu` and `stonybrook`: they are 96×96 PNG
 fallbacks, because no usable vector source was found. `favicon` is `public/favicon.ico` and
@@ -30,15 +31,13 @@ fallbacks, because no usable vector source was found. `favicon` is `public/favic
 
 ## Fonts
 
-| File                                                 | Source, pinned version                                                                                              | License                                            |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| `public/fonts/source-sans-3-latin-wght-normal.woff2` | <https://cdn.jsdelivr.net/npm/@fontsource-variable/source-sans-3@5.3.1/files/source-sans-3-latin-wght-normal.woff2> | [OFL-1.1](#sil-open-font-license-11-source-sans-3) |
+| File                                             | Source, pinned version                                                                                      | License                                        |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `public/fonts/noto-sans-latin-wght-normal.woff2` | <https://cdn.jsdelivr.net/npm/@fontsource-variable/noto-sans@5.3.0/files/noto-sans-latin-wght-normal.woff2> | [OFL-1.1](#sil-open-font-license-11-noto-sans) |
 
-Source Sans 3 by Adobe, font version 3.052: the Latin roman subset with the `wght` axis (200–900),
-from the npm package `@fontsource-variable/source-sans-3@5.3.1`. The file ships exactly as
-published: 28,872 bytes, SHA-256
-`19143dca075972bc84e3fd9eab7416dd40cc565dccb2435a044bdfabe060c7d5`. It is never re-subset or
-renamed, because a modified version may not carry the reserved font name "Source".
+Noto Sans by the Noto Project Authors, font version 2.015: the Latin roman subset with the `wght`
+axis (100–900), from `@fontsource-variable/noto-sans@5.3.0`. The file ships exactly as published:
+35,820 bytes, SHA-256 `51ca196f49a33e79e7870ff88ebd2829a3f627a51e7d690986618f0e7ad2b52d`.
 
 ## CC0 sources
 
@@ -114,13 +113,13 @@ IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
 ```
 
-## SIL Open Font License 1.1 (Source Sans 3)
+## SIL Open Font License 1.1 (Noto Sans)
 
-Covers `public/fonts/source-sans-3-latin-wght-normal.woff2`. Upstream project:
-<https://github.com/adobe-fonts/source-sans>. The copyright notice in the font file reads:
+Covers `public/fonts/noto-sans-latin-wght-normal.woff2`. Upstream project:
+<https://github.com/notofonts/latin-greek-cyrillic>. The copyright notice in the font file reads:
 
 ```text
-© 2023 Adobe (http://www.adobe.com/), with Reserved Font Name ‘Source’
+Copyright 2022 The Noto Project Authors (https://github.com/notofonts/latin-greek-cyrillic)
 ```
 
 That notice and the full license text ship next to the font as `public/fonts/OFL.txt`, served at

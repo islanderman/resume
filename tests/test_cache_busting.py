@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from urllib.parse import parse_qs, urljoin, urlsplit
 
-from resume_kit import cssscan, htmlfacts, refs
+from resume_kit import cssscan, htmlfacts, pagecss, refs
 from resume_kit import headers as hdr
 from resume_kit.common import HEADERS_FILE, INDEX, PUBLIC, public_files, read_text, rel, report
 
@@ -235,13 +235,29 @@ class EarlyHintsTest(unittest.TestCase):
         report(self, "Early Hints in public/_headers", problems)
 
 
+def apple_system_first():
+    """True when --font-sans names the Apple system font first: Apple devices skip the web font."""
+    scope = cssscan.root_scope(cssscan.effective(pagecss.page_sheet(), 1440))
+    first = scope.get("--font-sans", ("", False))[0].split(",")[0].strip().strip("'\"").lower()
+    return first in ("-apple-system", "blinkmacsystemfont")
+
+
 class FontPreloadTest(unittest.TestCase):
     def test_font_preloads_fetch_exactly_the_font_face_urls(self):
-        faces, preloads = font_faces(), font_preloads()
-        problems = preload_problems(preloads, faces)
-        if faces and not any(where == rel(INDEX) for where, _, _ in preloads):
-            problems.append(f"{rel(INDEX)} preloads no font, so its request waits for the CSS")
-        report(self, "font preloads", problems)
+        report(self, "font preloads", preload_problems(font_preloads(), font_faces()))
+
+    def test_web_font_is_preloaded_only_when_every_device_renders_it(self):
+        # With -apple-system first, Apple devices never fetch the web font; a preload, or an Early
+        # Hint built from one, would make them download it anyway.
+        preloads, problems = font_preloads(), []
+        if apple_system_first():
+            problems = [
+                f"{where} preloads {url}, which Apple devices never render"
+                for where, _, url in preloads
+            ]
+        elif font_faces() and not any(where == rel(INDEX) for where, _, _ in preloads):
+            problems = [f"{rel(INDEX)} preloads no font, so its request waits for the CSS"]
+        report(self, "font preload policy", problems)
 
 
 class VersionProblemsSelfTest(unittest.TestCase):

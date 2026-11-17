@@ -10,7 +10,7 @@ from resume_kit import cssscan, elements, htmlfacts, pagecss
 from resume_kit.common import INDEX, public_files, rel, report
 
 MIN_ZOOM_CEILING = 5.0  # WCAG 1.4.4: a maximum-scale below 5 stops users from zooming text.
-MEASURE_EM = (44.0, 52.0)  # Scanned bullets: about 105 characters, the printed line's length.
+MEASURE_EM = (44.0, 52.0)  # Scanned bullets: about 95-100 characters, the printed line's length.
 WIDE_SCREENS = (600, 768, 1024, 1440)  # Tablet and desktop; on phones the viewport sets the width.
 # Contact separators show only where the line never wraps: desktop screens and print.
 SEPARATED = ((1100, "screen"), (1440, "screen"), (720, "print"))

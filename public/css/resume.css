@@ -4,65 +4,60 @@
  */
 @layer reset, tokens, base, layout, components, print;
 
-/*
- * The published Latin subset, unmodified: the OFL reserves the name "Source", so a re-subset file
- * could not keep it. The default instance is 200, so the weight range must be declared.
- */
+/* Noto Sans 2.015: the published Latin subset, wght 100-900, unmodified. Only non-Apple devices
+   fetch it; Apple devices match -apple-system first and never request it. */
 @font-face {
-  font-family: 'Source Sans 3';
+  font-family: 'Noto Sans';
   font-style: normal;
-  font-weight: 200 900;
+  font-weight: 100 900;
   font-display: swap;
-  /* Must resolve to the <link rel="preload"> URL byte for byte, or the font downloads twice. */
-  src: url('../fonts/source-sans-3-latin-wght-normal.woff2?v=19143dca') format('woff2');
+  src: url('../fonts/noto-sans-latin-wght-normal.woff2?v=51ca196f') format('woff2');
   unicode-range:
     U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
     U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-/*
- * Local faces scaled to Source Sans 3's advance and vertical metrics on this page's copy, so the
- * swap moves nothing: body text at 400, headings at 600 (matched by the 700 face).
- */
+/* Local faces scaled to Noto Sans's advance and vertical metrics on this page's copy, so the swap
+   moves little: body text at 400, headings at 600 (matched by the 700 face). */
 @font-face {
-  font-family: 'Source Sans 3 Fallback';
+  font-family: 'Noto Sans Fallback';
   font-weight: 400;
   src: local('Arial'), local('ArialMT'), local('Liberation Sans'), local('Arimo');
-  size-adjust: 93.89%;
-  ascent-override: 109.07%;
-  descent-override: 42.6%;
+  size-adjust: 105.84%;
+  ascent-override: 101%;
+  descent-override: 27.68%;
   line-gap-override: 0%;
 }
 
 @font-face {
-  font-family: 'Source Sans 3 Fallback';
+  font-family: 'Noto Sans Fallback';
   font-weight: 700;
   src:
     local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('Arimo Bold');
-  size-adjust: 88.5%;
-  ascent-override: 115.71%;
-  descent-override: 45.2%;
+  size-adjust: 98.91%;
+  ascent-override: 108.08%;
+  descent-override: 29.62%;
   line-gap-override: 0%;
 }
 
 /* Android ships Roboto, not Arial, so it needs its own fitted faces. */
 @font-face {
-  font-family: 'Source Sans 3 Fallback Android';
+  font-family: 'Noto Sans Fallback Android';
   font-weight: 400;
   src: local('Roboto'), local('Roboto-Regular');
-  size-adjust: 93.98%;
-  ascent-override: 108.96%;
-  descent-override: 42.56%;
+  size-adjust: 105.93%;
+  ascent-override: 100.92%;
+  descent-override: 27.66%;
   line-gap-override: 0%;
 }
 
 @font-face {
-  font-family: 'Source Sans 3 Fallback Android';
+  font-family: 'Noto Sans Fallback Android';
   font-weight: 700;
   src: local('Roboto Bold'), local('Roboto-Bold');
-  size-adjust: 93.69%;
-  ascent-override: 109.3%;
-  descent-override: 42.7%;
+  size-adjust: 102.93%;
+  ascent-override: 103.86%;
+  descent-override: 28.47%;
   line-gap-override: 0%;
 }
 
@@ -94,9 +89,11 @@
     --color-link: #0066cc;
     --color-focus: #0066cc;
 
+    /* Apple devices render their system font (SF Pro) and download nothing; others get Noto Sans.
+       Never self-host an Apple font: Apple licenses it for system use only. */
     --font-sans:
-      'Source Sans 3', 'Source Sans 3 Fallback', 'Source Sans 3 Fallback Android', system-ui,
-      sans-serif;
+      -apple-system, BlinkMacSystemFont, 'Noto Sans', 'Noto Sans Fallback',
+      'Noto Sans Fallback Android', sans-serif;
     --weight-regular: 400;
     --weight-semibold: 600;
     --weight-bold: 700;
@@ -104,8 +101,8 @@
     --tracking-section: -0.01em;
 
     /*
-     * Phone first (< 600px). Sizes follow HIG Dynamic Type at Large, 1px up for Source Sans 3's
-     * small x-height; the root stays at the user's default size.
+     * Phone first (< 600px). Sizes follow HIG Dynamic Type at Large; desktop body and meta run 1px
+     * larger for reading distance. The root stays at the user's default size.
      */
     --text-base: 1.0625rem;
     --text-job: var(--text-base);
@@ -141,9 +138,9 @@
     --rail: calc(var(--icon-size) + var(--icon-gap));
 
     /*
-     * About 105 characters per line: résumé lines are scanned bullets, and the printed line runs
-     * as long (about 48em at 11pt on Letter). em, not ch: ch follows whichever font has loaded, so
-     * a ch box would resize the column at the font swap; em also scales with the browser text size.
+     * About 95-100 characters per line: résumé lines are scanned bullets, and the printed line
+     * runs as long (about 48em at 11pt on Letter). em, not ch: ch follows whichever font loaded,
+     * so a ch box would resize the column at the font swap; em scales with the browser text size.
      */
     --measure-text: 48em;
     --measure: calc(var(--measure-text) + var(--rail));
@@ -434,7 +431,7 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* Run-in heads read as labels; Source Sans 3 ships no italic file to draw them with. */
+    /* Run-in heads read as labels. */
     & em {
       font-style: normal;
       font-weight: var(--weight-semibold);
