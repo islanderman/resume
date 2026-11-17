@@ -78,6 +78,11 @@ NOT_FACTS = frozenset(
     "encodingFormat credentialCategory knowsLanguage email telephone".split()
 )
 PHONE = re.compile(r"\(?\b\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b")
+# Owner-authored facts the page never shows, carried over from the original JSON-LD
+# (tests/fixtures/original.html) on the owner's word. Only these two skip the visibility rule.
+OWNER_FACTS = frozenset(
+    {("Person", "alternateName", "Chen Yang"), ("Person", "knowsLanguage", "zh")}
+)
 # keywords: Google ignores the tag and Bing gives it no ranking weight, so it only adds bytes.
 BANNED_META_NAMES = re.compile(r"^(dc|dcterms)\.|^revisit-after$|^msapplication-|^keywords$", re.I)
 
@@ -560,12 +565,16 @@ class StructuredDataTest(unittest.TestCase):
             if key in NOT_FACTS or (key == "name" and parent.get("@type") == "ProfilePage"):
                 continue
             for item in as_list(value):
-                if isinstance(item, str) and not shown(item, text):
+                if not isinstance(item, str):
+                    continue
+                owned = (str(parent.get("@type")), key, item) in OWNER_FACTS
+                if not owned and not shown(item, text):
                     problems.append(f"{path}.{key} {item!r}")
         person = node("person")
         lang = (facts().lang or "").split("-")[0].lower()
         for tag in as_list(person.get("knowsLanguage")):
-            if str(tag).split("-")[0].lower() != lang:
+            owned = ("Person", "knowsLanguage", str(tag)) in OWNER_FACTS
+            if str(tag).split("-")[0].lower() != lang and not owned:
                 problems.append(f"knowsLanguage {tag!r}: the page states only its own language")
         if person.get("email"):
             address = person["email"].removeprefix("mailto:")
