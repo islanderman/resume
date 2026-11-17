@@ -12,9 +12,14 @@ from resume_kit.common import INDEX, public_files, rel, report
 MIN_ZOOM_CEILING = 5.0  # WCAG 1.4.4: a maximum-scale below 5 stops users from zooming text.
 MEASURE_EM = (44.0, 52.0)  # Scanned bullets: about 95-100 characters, the printed line's length.
 WIDE_SCREENS = (600, 768, 1024, 1440)  # Tablet and desktop; on phones the viewport sets the width.
-# Contact separators show only where the line never wraps: desktop screens and print.
-SEPARATED = ((1100, "screen"), (1440, "screen"), (720, "print"))
-STACKED = ((320, "screen"), (390, "screen"), (600, "screen"), (768, "screen"), (1000, "screen"))
+# Contact list columns by screen width: 1 below 36em, 2 from 36em, a wrapping row from 64em. Print
+# sets it as one text line with generated '|' separators, so no screen layout has a separator.
+CONTACT_LAYOUT = {
+    320: "1", 390: "1", 575: "1", 580: "2", 600: "2", 768: "2", 1023: "2", 1024: "row", 1440: "row",
+}  # fmt: skip
+CONTACT_QUERIES = {"(width < 36em)", "screen and (width >= 64em)"}
+PRINT_WIDTHS = (720, 698)  # Letter and A4 text width at 96dpi
+SEPARATOR = ".contact li + li::before"
 
 
 def viewport_settings(content):
@@ -137,47 +142,76 @@ def _with_class(name):
     return lambda tag, attrs, parents: name in elements.classes(attrs)
 
 
-class ContactSeparatorTest(unittest.TestCase):
-    def test_contact_markup_has_no_literal_separators(self):
+def contact_layout(sheet, width, media="screen"):
+    """'row' for a wrapping flex row, else the grid's column count, of .contact ul at `width`."""
+    rule = cssscan.effective(sheet, width, media).get(".contact ul", {})
+    display = rule.get("display", ("",))[0]
+    if display == "flex":
+        return "row" if rule.get("flex-wrap", ("",))[0] == "wrap" else "nowrap"
+    if display != "grid":
+        return display or "unset"
+    columns = rule.get("grid-template-columns", ("",))[0].strip()
+    match = re.match(r"^repeat\(\s*(\d+)\s*,", columns)
+    if match:
+        return match.group(1)
+    depth, count, gap = 0, 0, True
+    for ch in columns:
+        depth += (ch == "(") - (ch == ")")
+        if depth == 0 and ch.isspace():
+            gap = True
+        elif gap:
+            count, gap = count + 1, False
+    return str(count)
+
+
+class ContactRowTest(unittest.TestCase):
+    def test_contact_markup_has_no_literal_or_markup_separators(self):
         problems = []
         for path in public_files(".html", ".htm"):
             for e in elements.pick_in(path, _with_class("contact")):
                 if "|" in e.text:
                     problems.append(f"{rel(path)}: the contact text holds a literal '|'")
-            for e in elements.pick_in(path, _with_class("sep")):
-                if e.text or e.attrs.get("aria-hidden") != "true":
-                    problems.append(f"{rel(path)}: a .sep is not empty and aria-hidden='true'")
+            if elements.pick_in(path, _with_class("sep")):
+                problems.append(f"{rel(path)}: a .sep element is left; items are list items now")
         report(self, "contact separators in the markup", problems)
 
-    def test_separators_show_only_where_the_contact_line_never_wraps(self):
+    def test_contact_columns_step_with_the_width(self):
         sheet = pagecss.page_sheet()
-        problems = []
-        for cases, wanted in ((SEPARATED, True), (STACKED, False)):
-            for width, media in cases:
-                rules = cssscan.effective(sheet, width, media)
-                content = rules.get(".contact .sep::before", {}).get("content", ("",))[0]
-                display = rules.get(".contact .sep", {}).get("display", ("",))[0]
-                shown = content in ("'|'", '"|"') and display != "none"
-                if shown != wanted:
-                    problems.append(
-                        f"{media} {width}px: separators {'shown' if shown else 'hidden'} "
-                        f"(content {content!r}, display {display!r})"
-                    )
-        report(self, "contact separators by layout", problems)
+        problems = [
+            f"{width}px: layout {contact_layout(sheet, width)!r}, expected {want!r}"
+            for width, want in CONTACT_LAYOUT.items()
+            if contact_layout(sheet, width) != want
+        ]
+        report(self, "contact list layout", problems)
 
-    def test_contact_rows_switch_on_the_readers_font_size(self):
-        # A media query em is the reader's default font size: 64em is 1024px at 16px, and a
-        # larger default font keeps the stacked rows until the one-line row fits.
+    def test_contact_columns_switch_on_the_readers_font_size(self):
+        # A media query em is the reader's default font size: a larger default font keeps the
+        # narrower layout until the wider one fits.
         queries = {
             " ".join(alt.split())
             for rule in pagecss.page_sheet().rules
-            if rule.selector == ".contact .sep"
-            and any(prop == "display" and value == "none" for prop, value, _ in rule.decls)
+            if rule.selector == ".contact ul"
+            and any(prop in ("display", "grid-template-columns") for prop, _, _ in rule.decls)
             for query in rule.media
             for alt in cssscan.alternatives(query)
         }
-        if "screen and (width < 64em)" not in queries:
-            self.fail(f"the stacked contact rows need 'screen and (width < 64em)'; found {queries}")
+        missing = sorted(CONTACT_QUERIES - queries)
+        if missing:
+            self.fail(f"the contact layout needs {missing}; found {sorted(queries)}")
+
+    def test_separators_are_generated_only_for_print(self):
+        sheet = pagecss.page_sheet()
+        problems = []
+        contexts = [(w, "screen", False) for w in CONTACT_LAYOUT] + [
+            (w, "print", True) for w in PRINT_WIDTHS
+        ]
+        for width, media, wanted in contexts:
+            content = cssscan.effective(sheet, width, media).get(SEPARATOR, {}).get("content")
+            shown = bool(content) and "|" in content[0]
+            if shown != wanted:
+                problems.append(f"{media} {width}px: separator content is {content!r}")
+        report(self, "contact separators by medium", problems)
+
 
 if __name__ == "__main__":
     unittest.main()

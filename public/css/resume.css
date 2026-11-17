@@ -88,6 +88,9 @@
     --color-meta: var(--color-secondary);
     --color-link: #0066cc;
     --color-focus: #0066cc;
+    /* Contact glyphs stay quiet; the LinkedIn In bug keeps LinkedIn Blue, its only screen color. */
+    --color-glyph: var(--color-secondary);
+    --color-linkedin: #0a66c2;
 
     /* Apple devices render their system font (SF Pro) and download nothing; others get Noto Sans.
        Never self-host an Apple font: Apple licenses it for system use only. */
@@ -126,7 +129,9 @@
     --gap-job: 0.5rem;
     --gap-meta: 0.125rem;
     --gap-list: 0.375rem;
-    --gap-contact: 1em;
+    --gap-contact: 1.25em;
+    --gap-contact-column: 2em;
+    --gap-glyph: 0.5em;
     --gap-meta-inline: 1rem;
 
     --page-block: 1.5rem;
@@ -144,6 +149,8 @@
       (1lh + var(--gap-meta) + var(--text-meta) * var(--leading-meta) - var(--icon-size)) / 2
     );
     --rail: calc(var(--icon-size) + var(--icon-gap));
+    /* Contact glyphs and the In bug share one square, in em so they follow the text size. */
+    --glyph-size: 1.125em;
     --color-icon-tile: var(--color-bg);
     --color-icon-edge: #e3e3e8;
     --color-icon-shadow: rgb(0 0 0 / 0.06);
@@ -198,6 +205,15 @@
       --page-block: 3.5rem;
       --icon-size: 2.5rem;
       --icon-gap: 0.875rem;
+    }
+  }
+
+  /* Forced colors: glyphs and the bug take the user's text or link color; the bug's "in" is knocked
+     out, so it shows the user's background. */
+  @media (forced-colors: active) {
+    :root {
+      --color-glyph: currentColor;
+      --color-linkedin: currentColor;
     }
   }
 
@@ -358,12 +374,31 @@
   }
 
   .contact {
+    /* Stacked rows: the list starts one row gap below the title, the rhythm of its own rows. */
+    margin-block-start: max(0rem, var(--target-min) - 1lh - var(--gap-masthead));
     font-size: var(--text-contact);
     font-style: normal;
 
+    /* Two columns, rows 44px apart, so link hit areas tile without overlapping. The markup's
+       role="list" keeps the list in VoiceOver once list-style drops the markers. */
+    & ul {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, max-content));
+      justify-content: center;
+      column-gap: var(--gap-contact-column);
+      row-gap: calc(var(--target-min) - 1lh);
+      list-style: none;
+    }
+
+    & li,
+    & a {
+      display: flex;
+      align-items: start;
+      column-gap: var(--gap-glyph);
+    }
+
     & a {
       position: relative;
-      display: inline-block;
 
       /* Invisible 44px-tall hit area; it leaves the line box, and so the layout, untouched. */
       &::before {
@@ -374,31 +409,35 @@
       }
     }
 
-    /* Generated, so the markup holds no '|' text; the span is aria-hidden, so it is never read. */
-    & .sep::before {
-      content: '|';
+    /* Centered on the first line, so a wrapped item keeps its glyph beside its first line. */
+    & svg {
+      flex: none;
+      inline-size: var(--glyph-size);
+      block-size: var(--glyph-size);
+      margin-block-start: calc((1lh - var(--glyph-size)) / 2);
+      color: var(--color-glyph);
     }
 
-    /* Phones and tablets: a wrapped row would strand a separator, so links get their own rows.
-       In em, a larger default font keeps the rows; desktop screens and print keep one row. */
-    @media (width < 600px), screen and (width < 64em) {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      /* Keeps link hit areas off the phone number, which iOS may turn into a tel: link. */
-      row-gap: calc((var(--target-min) - 1lh) / 2);
+    & .linkedin-bug {
+      color: var(--color-linkedin);
+    }
 
-      & .links {
+    /* Phones: one column until two items fit side by side; in em, so a larger default font
+       keeps one column longer. */
+    @media (width < 36em) {
+      & ul {
+        grid-template-columns: minmax(0, max-content);
+      }
+    }
+
+    /* Desktop screens: one centered row; it wraps rather than overflows if a font runs wide. */
+    @media screen and (width >= 64em) {
+      margin-block-start: 0;
+
+      & ul {
         display: flex;
         flex-wrap: wrap;
-        justify-content: center;
         column-gap: var(--gap-contact);
-        /* Wrapped link rows sit 44px apart, so their hit areas tile without overlapping. */
-        row-gap: calc(var(--target-min) - 1lh);
-      }
-
-      & .sep {
-        display: none;
       }
     }
   }
@@ -525,6 +564,29 @@
 
     .company-icon {
       filter: grayscale(1);
+    }
+
+    /* Paper gets the plain contact line: no glyphs, '|' between items. It fits one line on
+       Letter and A4, so no separator is ever left at a line end. */
+    .contact {
+      margin-block-start: 0;
+
+      & ul {
+        display: block;
+      }
+
+      & li,
+      & a {
+        display: inline;
+      }
+
+      & svg {
+        display: none;
+      }
+
+      & li + li::before {
+        content: '| ';
+      }
     }
   }
 }
