@@ -227,10 +227,14 @@ def _raster_urls(where, text, base):
 
 
 class IconSizingTest(unittest.TestCase):
-    """Icon CSS policy: 20px below 600px, 24px from 600px, 16px grayscale in print; always square."""
+    """Icon CSS policy: 30px tile below 600px, 36px from 600px, 40px from 1024px, 18px grayscale
+    in print; always square."""
 
-    # The readability spec moved the step from 721px to the 600px tablet breakpoint on purpose.
-    SCREEN_POLICY = {320: 20, 390: 20, 599: 20, 600: 24, 720: 24, 768: 24, 1024: 24, 1440: 24}
+    # The readability spec moved the step from 721px to the 600px tablet breakpoint on purpose; the
+    # logo tiles (font spec § 11) add a desktop step at 1024px.
+    SCREEN_POLICY = {
+        320: 30, 390: 30, 599: 30, 600: 36, 720: 36, 768: 36, 1023: 36, 1024: 40, 1440: 40,
+    }  # fmt: skip
     PRINT_WIDTH = 794  # A4 at 96dpi; the desktop rules still apply, so print must override them
 
     @staticmethod
@@ -243,7 +247,7 @@ class IconSizingTest(unittest.TestCase):
     def test_icon_css_follows_the_size_policy_and_never_stretches(self):
         sheet = pagecss.page_sheet()
         contexts = [(w, "screen", want) for w, want in self.SCREEN_POLICY.items()]
-        contexts.append((self.PRINT_WIDTH, "print", 16))
+        contexts.append((self.PRINT_WIDTH, "print", 18))
         problems, missed = [], {}
         if not any(self._sizes(sheet, 390, "screen").values()):
             problems.append("no CSS rule with 'icon' in its selector sizes the icons")
