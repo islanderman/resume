@@ -46,6 +46,10 @@ FIGURE = re.compile(
 # The SEO rewrite replaced these head entries on purpose, so head parity skips them; only the
 # author and the canonical URL still match the original.
 REWRITTEN = ("title", "description", "open graph", "twitter", "json-ld")
+# The owner added a LinkedIn profile on 2026-11-16, as the last contact item. Every other link
+# and contact detail still matches the original.
+ADDED_LINKS = frozenset({"https://www.linkedin.com/in/chenyang"})
+ADDED_CONTACT_TEXT = "| linkedin.com/in/chenyang"
 MONTHS = {m: i for i, m in enumerate("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(), 1)}
 DATE = r"(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) )?\d{4}"
 DATE_RANGE = re.compile(rf"({DATE})\s*[-–—]\s*({DATE}|Present)")
@@ -272,20 +276,20 @@ class ContentParityTest(unittest.TestCase):
                 problems.append(f"{label}: names lost {sorted(lost)}")
         report(self, "metrics, technologies or masthead changed", problems)
 
-    def test_external_links_are_unchanged(self):
+    def test_external_links_are_the_original_plus_the_added_ones(self):
         expected, actual = (
-            refs.external_hrefs(original()),
+            refs.external_hrefs(original()) | {refs.norm_link(u) for u in ADDED_LINKS},
             refs.external_hrefs(htmlfacts.page(INDEX)),
         )
         problems = [f"missing from the port: {u}" for u in sorted(expected - actual)]
         problems += [f"new in the port: {u}" for u in sorted(actual - expected)]
         report(self, "https/mailto/tel links changed", problems)
 
-    def test_contact_details_are_unchanged(self):
-        expected = texts(ORIGINAL, with_class("contact"))
+    def test_contact_details_are_the_original_plus_the_added_ones(self):
+        expected = [f"{t} {ADDED_CONTACT_TEXT}" for t in texts(ORIGINAL, with_class("contact"))]
         actual = texts(INDEX, with_class("contact"))
         if expected != actual:
-            self.fail(f"contact block: original {expected}, port {actual}")
+            self.fail(f"contact block: expected {expected}, port {actual}")
 
     def test_job_headers_keep_titles_companies_places_and_dates(self):
         expected = [header_facts(job_header(j)) for j in jobs(ORIGINAL)]
