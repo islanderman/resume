@@ -78,7 +78,8 @@ NOT_FACTS = frozenset(
     "encodingFormat credentialCategory knowsLanguage email telephone".split()
 )
 PHONE = re.compile(r"\(?\b\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b")
-BANNED_META_NAMES = re.compile(r"^(dc|dcterms)\.|^revisit-after$|^msapplication-", re.I)
+# keywords: Google ignores the tag and Bing gives it no ranking weight, so it only adds bytes.
+BANNED_META_NAMES = re.compile(r"^(dc|dcterms)\.|^revisit-after$|^msapplication-|^keywords$", re.I)
 
 
 def facts(path=INDEX):
@@ -385,19 +386,6 @@ class HeadTagsTest(unittest.TestCase):
             if "serviceWorker" in body:
                 problems.append(f"script {src or 'inline'} registers a service worker")
         report(self, "tags the SEO plan rules out", problems)
-
-    def test_keywords_are_terms_the_page_uses(self):
-        values = tag_values(facts(), "name", "keywords")
-        problems = [] if len(values) <= 1 else [f"{len(values)} keywords tags"]
-        terms = [t.strip() for v in values for t in v.split(",") if t.strip()]
-        seen = set()
-        for term in terms:
-            if norm(term) in seen:
-                problems.append(f"'{term}' is listed twice")
-            seen.add(norm(term))
-            if not shown(term, visible()):
-                problems.append(f"'{term}' is not in the visible text (keyword stuffing)")
-        report(self, '<meta name="keywords">', problems)
 
 
 class SocialTagsTest(unittest.TestCase):
