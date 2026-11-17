@@ -608,6 +608,8 @@ class ManifestTest(unittest.TestCase):
             problems.append(f"theme_color {data.get('theme_color')!r} is not theme-color {theme!r}")
         if len(str(data.get("short_name", ""))) > 12:
             problems.append(f"short_name {data.get('short_name')!r} is over 12 characters")
+        if data.get("description") != meta_one("name", "description"):
+            problems.append("description differs from the page's meta description")
         report(self, MANIFEST_HREF, problems)
 
     def test_manifest_icons_exist_at_their_declared_sizes(self):
