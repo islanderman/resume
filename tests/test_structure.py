@@ -3,12 +3,14 @@
 import re
 import unittest
 
-from resume_kit import htmlfacts, refs, trackers
+from resume_kit import elements, htmlfacts, refs, trackers
 from resume_kit.common import INDEX, PUBLIC, read_text, rel, report
 
 NOT_FOUND = PUBLIC / "404.html"
 LANG = re.compile(r"^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$")
 TRACKER_HOSTS = ("googletagmanager.com", "google-analytics.com", "cloudflareinsights.com")
+# The render-critical prefix of every <head>; the stylesheet must not wait behind metadata.
+HEAD_START = ["charset", "viewport", "title", "stylesheet"]
 
 
 def basics(path):
@@ -36,6 +38,24 @@ def basics(path):
         problems.append("<title> is missing or empty")
     problems += [f"markup: {e}" for e in facts.balance_errors]
     return problems
+
+
+def head_children(path):
+    """Each element directly inside <head>, in page order, named by its role where it has one."""
+    names = []
+    picked = elements.pick_in(
+        path, lambda tag, attrs, parents: bool(parents) and parents[-1][0] == "head"
+    )
+    for e in picked:
+        if e.tag == "meta" and "charset" in e.attrs:
+            names.append("charset")
+        elif e.tag == "meta" and e.attrs.get("name", "").lower() == "viewport":
+            names.append("viewport")
+        elif e.tag == "link" and "stylesheet" in e.attrs.get("rel", "").lower().split():
+            names.append("stylesheet")
+        else:
+            names.append(e.tag)
+    return names
 
 
 def inline_script_problems(path):
@@ -109,6 +129,28 @@ class NotFoundPageTest(unittest.TestCase):
 
     def test_404_has_no_inline_scripts(self):
         report(self, "404.html inline scripts", inline_script_problems(NOT_FOUND))
+
+
+class HeadOrderTest(unittest.TestCase):
+    def test_head_loads_the_stylesheet_right_after_charset_viewport_and_title(self):
+        # SEO metadata, JSON-LD and analytics follow; the preload scanner meets the CSS first.
+        problems = []
+        for path in (INDEX, NOT_FOUND):
+            start = head_children(path)[: len(HEAD_START)]
+            if start != HEAD_START:
+                problems.append(f"{rel(path)} <head> starts {start}, expected {HEAD_START}")
+        report(self, "render-critical head order", problems)
+
+    def test_pages_preconnect_to_no_third_party_host(self):
+        # A preconnect to an analytics host would compete with the stylesheet for the network.
+        problems = [
+            f"{rel(path)}: <link rel={a.get('rel')!r} href={a.get('href')!r}>"
+            for path in (INDEX, NOT_FOUND)
+            for a in htmlfacts.page(path).links
+            if {"preconnect", "dns-prefetch"} & set(a.get("rel", "").lower().split())
+            and refs.kind(a.get("href", "")) == "external"
+        ]
+        report(self, "third-party preconnects", problems)
 
 
 class ColorSchemeTest(unittest.TestCase):

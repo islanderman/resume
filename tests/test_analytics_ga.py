@@ -87,6 +87,8 @@ class GoogleAnalyticsTest(unittest.TestCase):
                 )
             if "async" not in script.attrs and "defer" not in script.attrs:
                 problems.append("loader blocks rendering; add async")
+            if script.attrs.get("fetchpriority", "").strip().lower() != "low":
+                problems.append('loader competes with the page for bandwidth; add fetchpriority="low"')
         report(self, "gtag loader", problems)
 
     def test_gtag_config_is_called_with_the_measurement_id(self):

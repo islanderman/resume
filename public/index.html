@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Jerry Yang — Software Architect | Resume</title>
+    <!-- Render-critical, so it comes first: metadata, structured data and analytics follow. -->
+    <link rel="stylesheet" href="css/resume.css?v=d307e04a" />
+
     <meta
       name="description"
       content="Software Architect with 20+ years delivering high-scale platforms at Apple, Amazon, Microsoft, eBay, and Yahoo! Led AI and machine learning initiatives."
@@ -17,8 +20,6 @@
     <meta name="msvalidate.01" content="9D75B58D9AC0EF87C3D89261112BC012" />
     <meta name="theme-color" content="#ffffff" />
     <meta name="color-scheme" content="only light" />
-
-    <link rel="stylesheet" href="css/resume.css?v=d307e04a" />
     <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -63,10 +64,6 @@
       name="twitter:image:alt"
       content="Card with the JY monogram, the name Jerry Yang, the role Software Architect — High-Scale Platforms, and resume.chenyang.us."
     />
-
-    <!-- Google Analytics 4; the config lives in a file because the CSP allows no inline script. -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-3CH8BVY4VX"></script>
-    <script src="js/ga-init.js?v=fb1b67a3" defer></script>
 
     <!-- Structured data: one linked graph; every fact in it is visible on the page (test_seo.py). -->
     <script type="application/ld+json">
@@ -231,6 +228,15 @@
         ]
       }
     </script>
+
+    <!-- Google Analytics 4, last and at low priority, so it never competes with the page. The CSP
+         allows no inline script, so the config lives in a file. -->
+    <script
+      async
+      fetchpriority="low"
+      src="https://www.googletagmanager.com/gtag/js?id=G-3CH8BVY4VX"
+    ></script>
+    <script src="js/ga-init.js?v=fb1b67a3" defer></script>
   </head>
   <body>
     <header class="masthead">
