@@ -28,6 +28,14 @@
 /site.webmanifest
   Content-Type: application/manifest+json
 
+# Early Hints: Pages sends this Link in a 103 before the page, so the stylesheet starts loading
+# first. It must name the exact URL index.html loads (tests/test_cache_busting.py).
+/
+  Link: </css/resume.css?v=48d52e77>; rel=preload; as=style
+
+/index.html
+  Link: </css/resume.css?v=48d52e77>; rel=preload; as=style
+
 # Keep the pages.dev hostname out of search results; resume.chenyang.us is canonical.
 https://:project.pages.dev/*
   X-Robots-Tag: noindex

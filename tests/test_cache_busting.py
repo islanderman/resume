@@ -161,6 +161,19 @@ def header_rules():
     return [r for r in hdr.parse(text).rules if r.host is None]
 
 
+def stylesheet_path(page=INDEX):
+    """Root-absolute path and query of the one stylesheet `page` loads, as the browser resolves it."""
+    hrefs = [
+        a.get("href", "").strip()
+        for a in htmlfacts.page(page).links
+        if "stylesheet" in a.get("rel", "").lower().split()
+    ]
+    if len(hrefs) != 1:
+        raise AssertionError(f"{rel(page)} loads {len(hrefs)} stylesheets, expected 1")
+    parts = urlsplit(urljoin(served_url(page), hrefs[0]))
+    return parts.path + (f"?{parts.query}" if parts.query else "")
+
+
 class CacheBustingTest(unittest.TestCase):
     def test_every_url_into_an_immutable_folder_carries_its_file_hash(self):
         found = [f for f in references() if in_immutable_folder(f[2])]
@@ -199,6 +212,27 @@ class CacheBustingTest(unittest.TestCase):
             if r.value("cache-control") is not None and r.pattern not in allowed
         ]
         report(self, "Cache-Control set outside the versioned folders", problems)
+
+
+class EarlyHintsTest(unittest.TestCase):
+    # Pages sends these Link headers as a 103 before the page; a stale URL preloads a dead file.
+    PATHS = ("/", "/index.html")
+
+    def test_home_page_hints_preload_the_stylesheet_url_the_page_loads(self):
+        sheet = stylesheet_path()
+        want = f"<{sheet}>; rel=preload; as=style"
+        rules = {r.pattern: r for r in header_rules()}
+        problems = []
+        for path in self.PATHS:
+            got = rules[path].value("link") if path in rules else None
+            if got != want:
+                problems.append(f"'{path}' Link is {got!r}, expected {want!r}")
+        target, why = refs.resolve(sheet, PUBLIC)
+        if target is None:
+            problems.append(f"{sheet}: {why}")
+        else:
+            problems += version_problems([("_headers Link", sheet, target)])
+        report(self, "Early Hints in public/_headers", problems)
 
 
 class FontPreloadTest(unittest.TestCase):
