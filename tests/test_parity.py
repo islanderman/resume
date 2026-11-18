@@ -50,6 +50,14 @@ REWRITTEN = ("title", "description", "open graph", "twitter", "json-ld")
 # it on 2026-11-18. Every other link and contact detail still matches the original.
 ADDED_LINKS = frozenset({"https://www.linkedin.com/in/chenyang", "https://blog.chenyang.us/"})
 ADDED_CONTACT_TEXT = "linkedin.com/in/chenyang Blog"
+# Owner copy edits of 2026-11-18, as (original, approved) header facts: the internship names its
+# Yahoo! team, as the 2007 job does.
+HEADER_EDITS = (
+    (
+        "Technical Yahoo! Intern Yahoo! Inc.",
+        "Technical Yahoo! Intern Yahoo! Search Technology Yahoo! Inc.",
+    ),
+)
 MONTHS = {m: i for i, m in enumerate("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(), 1)}
 DATE = r"(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) )?\d{4}"
 DATE_RANGE = re.compile(rf"({DATE})\s*[-–—]\s*({DATE}|Present)")
@@ -152,6 +160,13 @@ def header_facts(text):
     """Header words only: the dash, comma and parenthesis separators changed, no fact did."""
     text = re.sub(r"\s[-–—]\s|[(),]", " ", text)
     return " ".join(re.sub(r"(?<=\d)-(?=\d)", " ", text).split())
+
+
+def approved_facts(facts):
+    """An original job's header facts with the owner's HEADER_EDITS applied."""
+    for old, new in HEADER_EDITS:
+        facts = facts.replace(old, new)
+    return facts
 
 
 def date_ranges(path):
@@ -296,9 +311,15 @@ class ContentParityTest(unittest.TestCase):
             self.fail(f"contact block: expected {expected}, port {actual}")
 
     def test_job_headers_keep_titles_companies_places_and_dates(self):
-        expected = [header_facts(job_header(j)) for j in jobs(ORIGINAL)]
+        original_facts = [header_facts(job_header(j)) for j in jobs(ORIGINAL)]
+        expected = [approved_facts(f) for f in original_facts]
         actual = [header_facts(job_header(j)) for j in jobs(INDEX)]
-        problems = []
+        # An owner edit must hit exactly one original header, or it pins nothing.
+        problems = [
+            f"owner edit {old!r} matches {n} original headers, expected 1"
+            for old, _ in HEADER_EDITS
+            if (n := sum(old in f for f in original_facts)) != 1
+        ]
         if len(expected) != len(actual):
             problems.append(f"{len(actual)} jobs, original has {len(expected)}")
         problems += [
