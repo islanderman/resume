@@ -51,12 +51,14 @@ REWRITTEN = ("title", "description", "open graph", "twitter", "json-ld")
 ADDED_LINKS = frozenset({"https://www.linkedin.com/in/chenyang", "https://blog.chenyang.us/"})
 ADDED_CONTACT_TEXT = "linkedin.com/in/chenyang Blog"
 # Owner copy edits of 2026-11-18, as (original, approved) header facts: the internship names its
-# Yahoo! team, as the 2007 job does.
+# Yahoo! team, as the 2007 job does; the AWS advisory council shows its place, as every other
+# entry does.
 HEADER_EDITS = (
     (
         "Technical Yahoo! Intern Yahoo! Inc.",
         "Technical Yahoo! Intern Yahoo! Search Technology Yahoo! Inc.",
     ),
+    ("Amazon Web Services 2024 2025", "Amazon Web Services Seattle WA 2024 2025"),
 )
 MONTHS = {m: i for i, m in enumerate("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(), 1)}
 DATE = r"(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) )?\d{4}"

@@ -48,7 +48,7 @@ Sunnyvale, CA Jun 2006 – Aug 2006
 Built a multilingual test framework (C++) for Yahoo! Search's semantic library covering CJK and European languages.
 Advisory Roles
 Member, In-Memory Databases Product Advisory Council, Amazon Web Services
-2024 – 2025
+Seattle, WA 2024 – 2025
 Appointed by AWS to provide product direction and industry feedback on in-memory database services.
 Education
 M.S., Computer Science, New York University

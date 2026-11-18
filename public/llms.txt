@@ -35,7 +35,7 @@ Senior Software Infrastructure Engineer / Technical Lead at **Apple Inc.** (Sunn
 
 ## Advisory
 
-- **AWS In-Memory Databases Product Advisory Council** member, 2024–2025. Appointed by AWS to provide product direction and industry feedback on in-memory database services.
+- **AWS In-Memory Databases Product Advisory Council** member, Seattle, WA (2024–2025). Appointed by AWS to provide product direction and industry feedback on in-memory database services.
 
 ## Education
 
