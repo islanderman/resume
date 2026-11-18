@@ -1,7 +1,7 @@
 """Masthead contact row: one list of the contact items, each led by a decorative inline SVG glyph,
 with LinkedIn's In bug on the LinkedIn link. tests/test_parity.py pins the text and the links;
-this file pins the list, the glyphs, the brand mark and their styles. Owner rule: LinkedIn is the
-only profile link on the resume."""
+this file pins the list, the glyphs, the brand mark and their styles. Owner rules: LinkedIn is the
+only third-party profile link on the resume; the blog is the owner's own site (2026-11-18)."""
 
 import re
 import unittest
@@ -13,21 +13,31 @@ from resume_kit.htmlfacts import VOID
 
 NOT_FOUND = PUBLIC / "404.html"
 LINKEDIN = "https://www.linkedin.com/in/chenyang"
+# chenyang.us redirects to the resume, so the blog's posts are reached from this row (2026-11-18).
+BLOG = "https://blog.chenyang.us/"
+OWN_SITES = ("https://resume.chenyang.us/", BLOG)
 ADDRESS = "zhenyoung@gmail.com"
 ITEMS = (
     "Cell: (917) 582-2826",
     ADDRESS,
     "https://resume.chenyang.us/",
     "linkedin.com/in/chenyang",
+    "Blog",
 )
-# The 404 page keeps its masthead as it was: the same items without LinkedIn.
+# The 404 page keeps its masthead as it was: the same items without LinkedIn or the blog.
 PAGE_ITEMS = {INDEX: ITEMS, NOT_FOUND: ITEMS[:3]}
 # (href, rel tokens it must carry, accessible name) of each contact link on index.html.
 LINKS = (
     (f"mailto:{ADDRESS}", {"me"}, ADDRESS),
     ("https://resume.chenyang.us", set(), "https://resume.chenyang.us/"),
     (LINKEDIN, {"me"}, "linkedin.com/in/chenyang"),
+    (BLOG, {"me"}, "Blog"),
 )
+# Presentation attributes every line glyph shares; only the LinkedIn bug draws in its own style.
+LINE_STYLE = (
+    "viewbox", "width", "height", "fill", "stroke", "stroke-width", "stroke-linecap",
+    "stroke-linejoin",
+)  # fmt: skip
 # LinkedIn's In bug as linkedin.com draws it: a 34x34 rounded square with the "in" knocked out,
 # filled with currentColor. Brand rule: unaltered proportions, so change it only to a newer
 # official asset.
@@ -236,16 +246,46 @@ class ContactListTest(unittest.TestCase):
                 problems.append(f"{rel(path)}: {ADDRESS} links {hrefs}, expected one mailto: link")
         report(self, "visible email links", problems)
 
-    def test_linkedin_is_the_only_profile_link(self):
-        own = refs.host_of("https://resume.chenyang.us/")
+    def test_linkedin_is_the_only_third_party_profile_link(self):
+        own = {refs.host_of(url) for url in OWN_SITES}
         anchors = [h[1] for _, h in items(INDEX) if is_tag(h, "a")]
         anchors += [a for a in htmlfacts.page(INDEX).anchors if "me" in a.get("rel", "").split()]
         profiles = {
             refs.norm_link(a.get("href", ""))
             for a in anchors
-            if refs.kind(a.get("href", "")) == "external" and refs.host_of(a.get("href", "")) != own
+            if refs.kind(a.get("href", "")) == "external"
+            and refs.host_of(a.get("href", "")) not in own
         }
         self.assertEqual(profiles, {refs.norm_link(LINKEDIN)}, "profile links on index.html")
+
+    def test_index_links_the_blog_once_with_a_matching_line_glyph(self):
+        found = [(li, h) for li, h in items(INDEX) if is_tag(h, "a") and h[1].get("href") == BLOG]
+        if len(found) != 1:
+            self.fail(f"{len(found)} contact items link {BLOG} as their only child, expected 1")
+        a = found[0][1]
+        problems = []
+        if name_of(a) != "Blog":
+            problems.append(f"accessible name {name_of(a)!r}, expected 'Blog'")
+        if "me" not in a[1].get("rel", "").lower().split():
+            problems.append("no rel=me; the blog is the owner's own site")
+        kids = content(a)
+        svg = kids[0] if kids and is_tag(kids[0], "svg") else None
+        if svg is None:
+            self.fail("the blog link does not start with an inline <svg>")
+        problems += glyph_problems(svg)
+        lines = [
+            s
+            for li, _ in items(INDEX)
+            for s in descendants(li, "svg")
+            if "linkedin-bug" not in s[1].get("class", "").split()
+        ]
+        problems += [
+            f"{attr}={svg[1].get(attr)!r}, other line glyphs use {other[1].get(attr)!r}"
+            for other in lines
+            for attr in LINE_STYLE
+            if other is not svg and other[1].get(attr) != svg[1].get(attr)
+        ]
+        report(self, "blog contact link", sorted(set(problems)))
 
 
 class LinkedInBugTest(unittest.TestCase):
