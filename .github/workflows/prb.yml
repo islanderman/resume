@@ -56,6 +56,20 @@ jobs:
       - name: Unit tests
         run: make test
 
+      # wrangler's engines field requires Node >= 22.
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+
+      # The lockfile fixes every transitive version, and --ignore-scripts skips their postinstalls.
+      - name: Install wrangler from the lockfile
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      # Unit tests read files; only a Pages simulator shows the status codes _redirects produces.
+      - name: Status codes under wrangler pages dev
+        run: tools/pages-dev-status.sh
+
       # The gitleaks hook scans only staged changes, so on a clean CI checkout it scans nothing.
       - name: Secret scan (full history)
         run: |
