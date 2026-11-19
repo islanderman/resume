@@ -13,6 +13,7 @@ import test_parity as parity
 import test_responsive as responsive
 import test_structure as structure
 from resume_kit import cssscan, headers as hdr, hosts, htmlfacts, pagecss, refs, svgcheck
+from resume_kit import redirects as rdr
 from resume_kit.common import FIXTURES, read_text
 
 SVG_OPEN = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">'
@@ -383,6 +384,46 @@ https://:project.pages.dev/*
             hdr.parse("/a\n  A: 1\n  a: 2\n").duplicates, ["/a: 'a' is set more than once"]
         )
         self.assertEqual(hdr.parse("/a\n  A: 1\n  a: 2\n").rules[0].value("A"), "1, 2")
+
+
+class RedirectsParserTest(unittest.TestCase):
+    def test_rules_comments_and_the_default_status(self):
+        parsed = rdr.parse("# comment\n/a /b\n  /c /d 200 # why\n\n/e https://x.test/f 301\n")
+        self.assertEqual(parsed.problems, [])
+        self.assertEqual(
+            [(r.source, r.target, r.status, r.line) for r in parsed.rules],
+            [("/a", "/b", 302, 2), ("/c", "/d", 200, 3), ("/e", "https://x.test/f", 301, 5)],
+        )
+
+    def test_problems_pages_would_hit(self):
+        cases = {
+            "/a\n": "2 or 3 fields",
+            "/a /b 302 /c\n": "2 or 3 fields",
+            "/a /b 404\n": "status",
+            "/a /b abc\n": "status",
+            "https://x.test/a /b\n": "source",
+            "/a b\n": "target",
+            "/a https://x.test/b 200\n": "relative",
+            "/a /" + "x" * 2000 + "\n": "exceeds",
+        }
+        for text, expected in cases.items():
+            parsed = rdr.parse(text)
+            self.assertTrue(
+                any(expected in p for p in parsed.problems), f"{text[:40]!r} -> {parsed.problems}"
+            )
+            self.assertEqual(parsed.rules, [], f"{text[:40]!r} still made a rule")
+
+    def test_a_duplicate_source_keeps_the_first_rule(self):
+        parsed = rdr.parse("/a /b\n/a /c\n")
+        self.assertEqual([(r.source, r.target) for r in parsed.rules], [("/a", "/b")])
+        self.assertTrue(any("duplicate" in p for p in parsed.problems), parsed.problems)
+
+    def test_rule_count_limits_count_every_rule_after_a_dynamic_one_as_dynamic(self):
+        static = "".join(f"/p{i} /q\n" for i in range(2001))
+        self.assertTrue(any("static" in p for p in rdr.parse(static).problems))
+        dynamic = "/p/* /q\n" + "".join(f"/p{i} /q\n" for i in range(100))
+        self.assertTrue(any("dynamic" in p for p in rdr.parse(dynamic).problems))
+        self.assertEqual(rdr.parse("/p/:id /q\n/r /s\n").problems, [])
 
 
 class CspTest(unittest.TestCase):
