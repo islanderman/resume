@@ -4,7 +4,6 @@ Cell: (917) 582-2826
 zhenyoung@gmail.com
 https://resume.chenyang.us/
 linkedin.com/in/chenyang
-Blog
 Professional Summary
 Software Architect with 20+ years delivering high-scale platforms at Apple, Amazon, Microsoft, eBay, and Yahoo! Platforms span cloud, on-premises, and embedded systems with vendor-agnostic designs. Led AI and machine learning initiatives, including automated model deployment, intelligent manufacturing workflows, and autonomous reasoning systems that orchestrate multi-step operations.
 Work Experience

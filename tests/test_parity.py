@@ -46,10 +46,10 @@ FIGURE = re.compile(
 # The SEO rewrite replaced these head entries on purpose, so head parity skips them; only the
 # author and the canonical URL still match the original.
 REWRITTEN = ("title", "description", "open graph", "twitter", "json-ld")
-# The owner added a LinkedIn profile on 2026-11-16, as the last contact item, and a Blog link after
-# it on 2026-11-18. Every other link and contact detail still matches the original.
-ADDED_LINKS = frozenset({"https://www.linkedin.com/in/chenyang", "https://blog.chenyang.us/"})
-ADDED_CONTACT_TEXT = "linkedin.com/in/chenyang Blog"
+# The owner added a LinkedIn profile on 2026-11-16, as the last contact item. Every other link
+# and contact detail still matches the original.
+ADDED_LINKS = frozenset({"https://www.linkedin.com/in/chenyang"})
+ADDED_CONTACT_TEXT = "linkedin.com/in/chenyang"
 # Owner copy edits of 2026-11-18, as (original, approved) header facts: the internship names its
 # Yahoo! team, as the 2007 job does; the AWS advisory council shows its place, as every other
 # entry does.

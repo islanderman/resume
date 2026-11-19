@@ -80,6 +80,8 @@ NOT_FACTS = frozenset(
 PHONE = re.compile(r"\(?\b\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b")
 # The owner forbids any GitHub link: repositories, gists, Pages sites and raw files alike.
 GITHUB = re.compile(r"github\.com|github\.io|githubusercontent\.com", re.I)
+# The owner removed the blog link on 2026-11-19: no file under public/ may name the blog host.
+BLOG = re.compile(r"blog\.chenyang\.us", re.I)
 # Owner rule: only people read the email address. Cloudflare's Email Address Obfuscation hides it
 # in page markup but skips <script> blocks and plain-text files, so JSON-LD and llms.txt omit it.
 EMAIL = re.compile(r"mailto:|[\w.%+-]+@[\w-]+(?:\.[\w-]+)+", re.I)
@@ -137,6 +139,27 @@ def json_ld_blocks(page):
             except ValueError as exc:
                 raise AssertionError(f"JSON-LD does not parse: {exc}") from exc
     return out
+
+
+def public_sources():
+    """(where, text) for each file under public/ and each page's JSON-LD block."""
+    files = public_files()
+    if INDEX not in files:
+        raise AssertionError(f"{rel(INDEX)} is missing, so the scan would pass on nothing")
+    sources = []
+    for path in files:
+        # latin-1 maps each byte to one character: an ASCII URL matches in UTF-8 and binaries.
+        sources.append((rel(path), path.read_bytes().decode("latin-1")))
+        if path.suffix.lower() in (".html", ".htm"):
+            blocks = json_ld_blocks(facts(path))
+            sources += [(f"{rel(path)} JSON-LD", json.dumps(b)) for b in blocks]
+    return sources
+
+
+def scan_hits(pattern):
+    """'where: match' for each hit of `pattern` in public_sources()."""
+    sources = public_sources()
+    return [f"{where}: {m.group(0)}" for where, text in sources for m in pattern.finditer(text)]
 
 
 def graph():
@@ -757,19 +780,11 @@ class LinksAndMarkupTest(unittest.TestCase):
     def test_no_github_url_in_any_file_under_public(self):
         # Every file as raw bytes, so no file type escapes. Compressed data is not decoded: the
         # woff2 name table keeps the verbatim Noto copyright that OFL condition 2 requires.
-        files = public_files()
-        self.assertIn(INDEX, files, f"{rel(INDEX)} is missing, so the scan would pass on nothing")
-        sources = []
-        for path in files:
-            # latin-1 maps each byte to one character: an ASCII URL matches in UTF-8 and binaries.
-            sources.append((rel(path), path.read_bytes().decode("latin-1")))
-            if path.suffix.lower() in (".html", ".htm"):
-                blocks = json_ld_blocks(facts(path))
-                sources += [(f"{rel(path)} JSON-LD", json.dumps(b)) for b in blocks]
-        problems = [
-            f"{where}: {m.group(0)}" for where, text in sources for m in GITHUB.finditer(text)
-        ]
-        report(self, "GitHub URLs the owner forbids", problems)
+        report(self, "GitHub URLs the owner forbids", scan_hits(GITHUB))
+
+    def test_no_blog_url_in_any_file_under_public(self):
+        # The contact row, Person.sameAs and llms.txt dropped it together; no file may restore it.
+        report(self, "blog URLs the owner removed", scan_hits(BLOG))
 
 
 class GithubPatternSelfTest(unittest.TestCase):
