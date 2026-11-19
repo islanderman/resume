@@ -2,17 +2,20 @@
 JSON-LD fact must be visible on the page, and every URL that names the page must be the canonical
 one, so search engines and link previews never disagree with what a reader sees."""
 
+import functools
+import html
 import json
 import re
 import subprocess
+import sys
 import unittest
 import xml.etree.ElementTree as ET
 from datetime import date, datetime, timedelta, timezone
-from urllib.parse import urlsplit
+from unittest import mock
+from urllib.parse import unquote, urlsplit
 
 from resume_kit import elements, htmlfacts, refs, svgcheck
 from resume_kit import headers as hdr
-from resume_kit.profiles import external_profiles, profile_links
 from resume_kit.common import (
     HEADERS_FILE,
     INDEX,
@@ -24,6 +27,7 @@ from resume_kit.common import (
     rel,
     report,
 )
+from resume_kit.profiles import external_profiles, profile_links
 
 NOT_FOUND = PUBLIC / "404.html"
 SITEMAP = PUBLIC / "sitemap.xml"
@@ -83,6 +87,10 @@ PHONE = re.compile(r"\(?\b\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b")
 GITHUB = re.compile(r"github\.com|github\.io|githubusercontent\.com", re.I)
 # The owner removed the blog link on 2026-11-19: no file under public/ may name the blog host.
 BLOG = re.compile(r"blog\.chenyang\.us", re.I)
+# An http(s) URL in plain text; markdown's <> and () delimiters end it.
+URL = re.compile(r"""https?://[^\s<>()\[\]"'`]+""", re.I)
+# Each round undoes one layer of HTML character references and percent-escapes.
+DECODE_ROUNDS = 5
 # Owner rule: only people read the email address. Cloudflare's Email Address Obfuscation hides it
 # in page markup but skips <script> blocks and plain-text files, so JSON-LD and llms.txt omit it.
 EMAIL = re.compile(r"mailto:|[\w.%+-]+@[\w-]+(?:\.[\w-]+)+", re.I)
@@ -142,8 +150,9 @@ def json_ld_blocks(page):
     return out
 
 
+@functools.lru_cache(maxsize=None)
 def public_sources():
-    """(where, text) for each file under public/ and each page's JSON-LD block."""
+    """(where, text) for each file under public/ and each page's JSON-LD block, read once."""
     files = public_files()
     if INDEX not in files:
         raise AssertionError(f"{rel(INDEX)} is missing, so the scan would pass on nothing")
@@ -154,13 +163,47 @@ def public_sources():
         if path.suffix.lower() in (".html", ".htm"):
             blocks = json_ld_blocks(facts(path))
             sources += [(f"{rel(path)} JSON-LD", json.dumps(b)) for b in blocks]
-    return sources
+    return tuple(sources)
+
+
+def decoded_forms(text):
+    """`text`, then each new form after decoding HTML character references and percent-escapes,
+    so blog&#46;chenyang.us or blog%2Echenyang.us still reads as the host it hides."""
+    forms = [text]
+    for _ in range(DECODE_ROUNDS):
+        decoded = unquote(html.unescape(forms[-1]))
+        if decoded == forms[-1]:
+            break
+        forms.append(decoded)
+    return forms
 
 
 def scan_hits(pattern):
-    """'where: match' for each hit of `pattern` in public_sources()."""
-    sources = public_sources()
-    return [f"{where}: {m.group(0)}" for where, text in sources for m in pattern.finditer(text)]
+    """'where: match' for each distinct hit of `pattern` in public_sources(), decoded or not."""
+    hits = []
+    for where, text in public_sources():
+        forms = decoded_forms(text)
+        found = dict.fromkeys(m.group(0) for form in forms for m in pattern.finditer(form))
+        hits += [f"{where}: {hit}" for hit in found]
+    return hits
+
+
+def llms_problems(text, site, same_as):
+    """Why llms.txt fails: an email address, a missing site or profile link, or a URL that is
+    neither on the site's host nor in Person.sameAs."""
+    problems = [f"names {m.group(0)!r}" for m in EMAIL.finditer(text)]
+    problems += [f"does not link <{url}>" for url in [site] + same_as if f"<{url}>" not in text]
+    host = urlsplit(site).hostname
+    allowed = {refs.norm_link(url) for url in same_as}
+    found = dict.fromkeys(
+        m.group(0).rstrip(".,;:!?*_") for form in decoded_forms(text) for m in URL.finditer(form)
+    )
+    for url in found:
+        parts = urlsplit(url)
+        on_site = parts.scheme.lower() == "https" and parts.hostname == host
+        if not on_site and refs.norm_link(url) not in allowed:
+            problems.append(f"links {url}, which is neither on {host} nor in Person.sameAs")
+    return problems
 
 
 def graph():
@@ -686,13 +729,10 @@ class RootFilesTest(unittest.TestCase):
             problems.append(f"'Last updated: {match.group(1)}' is in the future")
         report(self, rel(ROBOTS), problems)
 
-    def test_llms_txt_links_the_site_and_profiles_but_no_email_address(self):
+    def test_llms_txt_links_only_the_site_and_its_profiles_and_no_email_address(self):
         text = read_text(LLMS, "AI crawlers read llms.txt")
-        problems = [f"names {m.group(0)!r}" for m in EMAIL.finditer(text)]
-        for url in [canonical()] + as_list(node("person").get("sameAs")):
-            if f"<{url}>" not in text:
-                problems.append(f"does not link <{url}>")
-        report(self, rel(LLMS), problems)
+        same_as = [str(url) for url in as_list(node("person").get("sameAs"))]
+        report(self, rel(LLMS), llms_problems(text, canonical(), same_as))
 
 
 class LinksAndMarkupTest(unittest.TestCase):
@@ -763,6 +803,52 @@ class LinksAndMarkupTest(unittest.TestCase):
     def test_no_blog_url_in_any_file_under_public(self):
         # The contact row, Person.sameAs and llms.txt dropped it together; no file may restore it.
         report(self, "blog URLs the owner removed", scan_hits(BLOG))
+
+
+class BlogPatternSelfTest(unittest.TestCase):
+    def test_pattern_matches_the_blog_host_in_any_case_and_nothing_else(self):
+        self.assertRegex("https://BLOG.chenyang.us/", BLOG)
+        self.assertNotRegex("https://www.linkedin.com/in/chenyang", BLOG)
+
+    def test_character_references_and_percent_escapes_are_decoded_first(self):
+        for text in (
+            "blog&#46;chenyang&#x2E;us",
+            "&#98;log.chenyang.us",
+            "blog&period;chenyang.us",
+            "blog%2Echenyang%2eus",
+            "blog%252Echenyang.us",
+            "blog&amp;#46;chenyang.us",
+        ):
+            with self.subTest(text):
+                self.assertNotRegex(text, BLOG)
+                self.assertTrue(any(BLOG.search(form) for form in decoded_forms(text)))
+
+    def test_scan_reports_each_hidden_host_once_per_source(self):
+        page = '<a href="https://blog%2Echenyang.us/">blog&#46;chenyang.us</a>'
+        fake = (("public/x.html", page),)
+        with mock.patch.object(sys.modules[__name__], "public_sources", return_value=fake):
+            self.assertEqual(scan_hits(BLOG), ["public/x.html: blog.chenyang.us"])
+
+
+class LlmsAllowListSelfTest(unittest.TestCase):
+    SITE = "https://resume.example/"
+    SAME_AS = ["https://www.linkedin.com/in/x"]
+    BASE = "<https://resume.example/> <https://www.linkedin.com/in/x> "
+
+    def test_site_pages_and_same_as_profiles_pass(self):
+        text = self.BASE + "Sitemap: <https://resume.example/sitemap.xml>."
+        self.assertEqual(llms_problems(text, self.SITE, self.SAME_AS), [])
+
+    def test_any_other_url_fails_even_when_encoded(self):
+        for extra in (
+            "<https://blog.example/>",
+            "see https://other.example/x.",
+            "<h&#116;tps://evil.example/>",
+            "<http://resume.example/>",
+        ):
+            with self.subTest(extra):
+                problems = llms_problems(self.BASE + extra, self.SITE, self.SAME_AS)
+                self.assertEqual(len(problems), 1, problems)
 
 
 class GithubPatternSelfTest(unittest.TestCase):
