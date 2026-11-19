@@ -129,7 +129,8 @@
     --gap-job: 0.5rem;
     --gap-meta: 0.125rem;
     --gap-list: 0.375rem;
-    --gap-contact: 1.25em;
+    /* Added to the word space between one-row contact items: about 1.25em in all. */
+    --gap-contact: 1em;
     --gap-contact-column: 2em;
     --gap-glyph: 0.5em;
     --gap-meta-inline: 1rem;
@@ -374,19 +375,21 @@
   }
 
   .contact {
-    /* Stacked rows: the list starts one row gap below the title, the rhythm of its own rows. */
-    margin-block-start: max(0rem, var(--target-min) - 1lh - var(--gap-masthead));
+    /* The query container of the one-row layout below; its inline size is the column's. */
+    container: contact / inline-size;
     font-size: var(--text-contact);
     font-style: normal;
 
     /* Two columns, rows 44px apart, so link hit areas tile without overlapping. The markup's
-       role="list" keeps the list in VoiceOver once list-style drops the markers. */
+       role="list" keeps the list in VoiceOver once list-style drops the markers. Stacked rows
+       start one row gap below the title, the rhythm of their own rows. */
     & ul {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, max-content));
       justify-content: center;
       column-gap: var(--gap-contact-column);
       row-gap: calc(var(--target-min) - 1lh);
+      margin-block-start: max(0rem, var(--target-min) - 1lh - var(--gap-masthead));
       list-style: none;
     }
 
@@ -438,14 +441,24 @@
       }
     }
 
-    /* Desktop screens: one centered row; it wraps rather than overflows if a font runs wide. */
-    @media screen and (width >= 64em) {
-      margin-block-start: 0;
+    /* One centered row only where the whole row fits: the query measures the column in the
+       contact text's own em, so every default font size switches at the same fit. A font too
+       wide for that row still breaks balanced, 2 + 2, never 3 + 1. Rows stay 44px apart. */
+    @media screen {
+      @container contact (width >= 57em) {
+        & ul {
+          display: block;
+          margin-block: calc((1lh - var(--target-min)) / 2);
+          word-spacing: var(--gap-contact);
+          text-wrap: balance;
+        }
 
-      & ul {
-        display: flex;
-        flex-wrap: wrap;
-        column-gap: var(--gap-contact);
+        & li {
+          display: inline-flex;
+          vertical-align: top;
+          margin-block: calc((var(--target-min) - 1lh) / 2);
+          word-spacing: normal;
+        }
       }
     }
   }
