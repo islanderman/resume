@@ -223,7 +223,11 @@ def one_row_problems(sheet):
     preludes = {q for r in rules for q in r.containers}
     if not rules:
         return ["no @container rule sets the contact row; a viewport query cannot see the column"]
-    problems = [f"{r.selector} also applies to print" for r in rules if "screen" not in r.media]
+    problems = [
+        f"{r.selector} also applies to print"
+        for r in rules
+        if any(all(cssscan.applies(q, w, "print") for q in r.media) for w in PRINT_WIDTHS)
+    ]
     found = [ROW_QUERY.match(" ".join(q.split())) for q in preludes]
     if len(found) != 1 or not found[0]:
         return problems + [f"want one '{CONTACT_CONTAINER} (width >= Nem)' query, got {preludes}"]
@@ -231,6 +235,9 @@ def one_row_problems(sheet):
     box = cssscan.effective(sheet, DESKTOP).get(".contact", {})
     if container_of(box) != (CONTACT_CONTAINER, "inline-size"):
         problems.append(f".contact is no '{CONTACT_CONTAINER}' inline-size container: {box}")
+    narrowed = [p for p in ("width", "max-width", "margin-inline", "padding-inline") if p in box]
+    if narrowed:
+        problems.append(f".contact sets {narrowed}, so the query no longer measures the column")
     if least < CONTACT_ROW_EM:
         problems.append(f"one row from {least:g}em, but the row needs {CONTACT_ROW_EM}em")
     column = desktop_column_em(sheet)
@@ -335,10 +342,13 @@ class OneRowProblemsSelfTest(unittest.TestCase):
         self.assertTrue(any("needs" in p for p in self.problems(self.ROW.replace("57em", "50em"))))
         self.assertTrue(any("never" in p for p in self.problems(self.ROW.replace("57em", "60em"))))
 
-    def test_a_greedy_row_or_a_print_leak_fails(self):
+    def test_a_greedy_row_a_print_leak_or_a_narrowed_container_fails(self):
         greedy = self.ROW.replace("text-wrap: balance", "flex-wrap: wrap")
         self.assertTrue(any("3 + 1" in p for p in self.problems(greedy)))
         self.assertTrue(any("print" in p for p in self.problems(self.QUERY)))
+        self.assertEqual(self.problems(f"@media screen and (width >= 1px) {{ {self.QUERY} }}"), [])
+        narrow = ".contact { max-inline-size: 40em } " + self.ROW
+        self.assertTrue(any("measures" in p for p in self.problems(narrow)))
 
 
 if __name__ == "__main__":
