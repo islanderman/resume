@@ -29,6 +29,7 @@ class Rule:
     media: tuple
     selector: str
     decls: list  # (property, value, important)
+    containers: tuple = ()  # @container preludes around the rule, outermost first
 
 
 @dataclass
@@ -135,7 +136,7 @@ def _join(parent, child):
     return child.replace("&", parent) if "&" in child else f"{parent} {child}"
 
 
-def _block(text, i, end, media, selector, rules, media_queries):
+def _block(text, i, end, media, selector, rules, media_queries, containers=()):
     decls = []
     while i < end:
         j = _scan(text, i, end)
@@ -158,16 +159,21 @@ def _block(text, i, end, media, selector, rules, media_queries):
                 if at in ("media", "supports", "layer", "container", "scope"):
                     query = prelude[len(at) + 1 :].strip()
                     inner_media = media + (query,) if at == "media" else media
+                    inner_box = containers + (query,) if at == "container" else containers
                     if at == "media":
                         media_queries.append(query)
-                    inner = _block(text, j + 1, k, inner_media, selector, rules, media_queries)
+                    inner = _block(
+                        text, j + 1, k, inner_media, selector, rules, media_queries, inner_box
+                    )
                     if selector is not None and inner:
-                        rules.append(Rule(inner_media, selector, _decls(inner)))
+                        rules.append(Rule(inner_media, selector, _decls(inner), inner_box))
             else:
                 sel = prelude if selector is None else _join(selector, prelude)
-                rule = Rule(media, sel, [])
+                rule = Rule(media, sel, [], containers)
                 rules.append(rule)  # parent first, so nested rules cascade after it
-                rule.decls = _decls(_block(text, j + 1, k, media, sel, rules, media_queries))
+                rule.decls = _decls(
+                    _block(text, j + 1, k, media, sel, rules, media_queries, containers)
+                )
             i = k + 1
     return decls
 
@@ -261,6 +267,22 @@ def media_types(alternative):
     return set(re.findall(r"[a-z-]+", head)) & {"screen", "print", "speech", "all"}
 
 
+def container_applies(prelude, name, inline_px, em_px, rem_px=16.0):
+    """True when an @container prelude can target a container called `name` whose inline size is
+    `inline_px`; em in the condition is the container's font size `em_px`, as the spec says."""
+    match = re.match(r"\s*(?:([A-Za-z_][\w-]*)\s+)?(\(.*\))\s*$", prelude, re.S)
+    if not match or (match.group(1) and match.group(1) != name):
+        return False
+
+    def to_px_text(found):
+        unit = em_px if found.group(2).lower() == "em" else rem_px
+        return f"{float(found.group(1)) * unit}px"
+
+    condition = re.sub(r"(-?\d*\.?\d+)(r?em)\b", to_px_text, match.group(2), flags=re.I)
+    lo, hi = width_range(condition.replace("inline-size", "width"))
+    return lo <= inline_px <= hi
+
+
 def applies(query_list, width, media="screen"):
     """True when an @media prelude can match `width` px for the given media type."""
     alts = alternatives(query_list)
@@ -302,13 +324,16 @@ def width_queries(sheet, extra=()):
 
 
 # --- cascade-lite ----------------------------------------------------------------
-def effective(sheet, width, media="screen", match=None):
-    """selector -> {property: (value, important)} for rules active at `width` (later wins)."""
+def effective(sheet, width, media="screen", match=None, container=None):
+    """selector -> {property: (value, important)} for rules active at `width` (later wins). A rule
+    inside @container counts only when container(prelude) holds for each of its preludes."""
     out = {}
     for rule in sheet.rules:
         if match and not match(rule.selector):
             continue
         if not all(applies(q, width, media) for q in rule.media):
+            continue
+        if rule.containers and not (container and all(map(container, rule.containers))):
             continue
         slot = out.setdefault(rule.selector, {})
         for prop, value, important in rule.decls:

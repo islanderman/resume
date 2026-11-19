@@ -20,7 +20,10 @@ def page_sheet(index=INDEX):
         for rule in sheet.rules:
             rules.append(
                 cssscan.Rule(
-                    (media,) + rule.media if media else rule.media, rule.selector, rule.decls
+                    (media,) + rule.media if media else rule.media,
+                    rule.selector,
+                    rule.decls,
+                    rule.containers,
                 )
             )
 

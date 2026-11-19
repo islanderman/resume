@@ -91,6 +91,28 @@ class CssParseTest(unittest.TestCase):
         )
         self.assertEqual(cssscan.width_problems(sheet), [])  # the phone override wins at 390px
 
+    def test_container_queries_apply_only_when_their_container_matches(self):
+        sheet = cssscan.parse(
+            ".a { color: red; @container box (width >= 40em) { color: blue } }"
+            "@container (inline-size < 20rem) { .b { color: green } }"
+        )
+        self.assertEqual(
+            [(r.selector, r.containers) for r in sheet.rules],
+            [(".a", ()), (".a", ("box (width >= 40em)",)), (".b", ("(inline-size < 20rem)",))],
+        )
+        self.assertEqual(sheet.media_queries, [])  # a container query is no viewport query
+        self.assertEqual(cssscan.effective(sheet, 2000)[".a"]["color"][0], "red")
+        self.assertNotIn(".b", cssscan.effective(sheet, 100))
+        wide = cssscan.effective(sheet, 100, container=lambda q: True)
+        self.assertEqual((wide[".a"]["color"][0], wide[".b"]["color"][0]), ("blue", "green"))
+
+    def test_container_conditions_read_em_from_the_container_font(self):
+        self.assertTrue(cssscan.container_applies("box (width >= 40em)", "box", 600, em_px=15))
+        self.assertFalse(cssscan.container_applies("box (width >= 40em)", "box", 599, em_px=15))
+        self.assertFalse(cssscan.container_applies("box (width >= 40em)", "other", 999, em_px=15))
+        self.assertTrue(cssscan.container_applies("(inline-size < 20rem)", "any", 319, em_px=99))
+        self.assertFalse(cssscan.container_applies("(inline-size < 20rem)", "any", 321, em_px=99))
+
     def test_important_beats_a_later_normal_declaration(self):
         sheet = cssscan.parse(".a { width: 900px !important } .a { width: auto }")
         self.assertEqual(len(cssscan.width_problems(sheet)), 1)
