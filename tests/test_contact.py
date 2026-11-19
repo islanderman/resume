@@ -6,12 +6,13 @@ import re
 import unittest
 from html.parser import HTMLParser
 
-from resume_kit import cssscan, htmlfacts, pagecss, refs, svgcheck
+from resume_kit import cssscan, pagecss, profiles, refs, svgcheck
 from resume_kit.common import INDEX, PUBLIC, read_text, rel, report
 from resume_kit.htmlfacts import VOID
 
 NOT_FOUND = PUBLIC / "404.html"
-# Owner rule: LinkedIn is the only profile link on the resume; the blog link went on 2026-11-19.
+# Owner rule: LinkedIn is the only profile link on the resume; the blog link was removed on
+# 2026-11-19.
 LINKEDIN = "https://www.linkedin.com/in/chenyang"
 ADDRESS = "zhenyoung@gmail.com"
 ITEMS = (
@@ -22,12 +23,18 @@ ITEMS = (
 )
 # The 404 page keeps its masthead as it was: the same items without LinkedIn.
 PAGE_ITEMS = {INDEX: ITEMS, NOT_FOUND: ITEMS[:3]}
+PAGE_PROFILES = {INDEX: {LINKEDIN}, NOT_FOUND: set()}
 # (href, rel tokens it must carry, accessible name) of each contact link on index.html.
 LINKS = (
     (f"mailto:{ADDRESS}", {"me"}, ADDRESS),
     ("https://resume.chenyang.us", set(), "https://resume.chenyang.us/"),
     (LINKEDIN, {"me"}, "linkedin.com/in/chenyang"),
 )
+# Presentation attributes every line glyph shares; only the LinkedIn bug draws in its own style.
+LINE_STYLE = (
+    "viewbox", "width", "height", "fill", "stroke", "stroke-width", "stroke-linecap",
+    "stroke-linejoin",
+)  # fmt: skip
 # LinkedIn's In bug as linkedin.com draws it: a 34x34 rounded square with the "in" knocked out,
 # filled with currentColor. Brand rule: unaltered proportions, so change it only to a newer
 # official asset.
@@ -237,15 +244,34 @@ class ContactListTest(unittest.TestCase):
         report(self, "visible email links", problems)
 
     def test_linkedin_is_the_only_profile_link(self):
-        own = refs.host_of("https://resume.chenyang.us/")
-        anchors = [h[1] for _, h in items(INDEX) if is_tag(h, "a")]
-        anchors += [a for a in htmlfacts.page(INDEX).anchors if "me" in a.get("rel", "").split()]
-        profiles = {
-            refs.norm_link(a.get("href", ""))
-            for a in anchors
-            if refs.kind(a.get("href", "")) == "external" and refs.host_of(a.get("href", "")) != own
-        }
-        self.assertEqual(profiles, {refs.norm_link(LINKEDIN)}, "profile links on index.html")
+        # Contact links and every rel="me" <a> or <link>, any rel case; the 404 page lists none.
+        problems = []
+        for path, wanted in PAGE_PROFILES.items():
+            found = profiles.external_profiles(path)
+            want = {refs.norm_link(url) for url in wanted}
+            if found != want:
+                problems.append(f"{rel(path)}: profiles {sorted(found)}, expected {sorted(want)}")
+        report(self, "profile links", problems)
+
+    def test_line_glyphs_share_one_drawing_style(self):
+        glyphs = [
+            (path, name_of(li) or "?", svg)
+            for path in PAGE_ITEMS
+            for li, _ in items(path)
+            for svg in descendants(li, "svg")
+            if "linkedin-bug" not in svg[1].get("class", "").split()
+        ]
+        if not glyphs:
+            self.fail("no line glyphs in the contact lists")
+        style = {attr: glyphs[0][2][1].get(attr) for attr in LINE_STYLE}
+        problems = [f"the first line glyph has no {a}" for a, v in style.items() if v is None]
+        problems += [
+            f"{rel(path)} '{label}': {attr}={svg[1].get(attr)!r}, other line glyphs use {want!r}"
+            for path, label, svg in glyphs
+            for attr, want in style.items()
+            if svg[1].get(attr) != want
+        ]
+        report(self, "line glyph style", problems)
 
 
 class LinkedInBugTest(unittest.TestCase):
