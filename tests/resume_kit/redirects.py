@@ -1,7 +1,6 @@
-"""Cloudflare Pages `_redirects` model: a port of the parser Pages runs on the file and of the order
-in which it matches the rules it keeps (workers-shared parseRedirects and its rules engine, as
-wrangler 4.155.0 bundles them), JavaScript string semantics included. Each line Pages drops is a
-problem."""
+"""Cloudflare Pages `_redirects` model: a port, JavaScript string rules included, of how Pages
+parses the file and matches the rules it keeps (workers-shared parseRedirects and rules engine in
+wrangler 4.155.0). Each line Pages drops is a problem."""
 
 __unittest = True  # keeps helper frames out of unittest failure reports
 
