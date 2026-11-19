@@ -282,6 +282,18 @@ class ContactRowTest(unittest.TestCase):
         if missing:
             self.fail(f"the contact layout needs {missing}; found {sorted(queries)}")
 
+    def test_print_adds_no_stacked_margin_above_the_contact_line(self):
+        # Paper fits two pages exactly; the screen's 44px row rhythm must not add space there.
+        sheet = pagecss.page_sheet()
+        problems = []
+        for width in PRINT_WIDTHS:
+            eff = cssscan.effective(sheet, width, "print")
+            for selector in (".contact", ".contact ul"):
+                value = eff.get(selector, {}).get("margin-block-start", ("0", False))[0].strip()
+                if value not in ("0", "0px", "0rem"):
+                    problems.append(f"print {width}px: {selector} margin-block-start is {value!r}")
+        report(self, "print contact margins", problems)
+
     def test_separators_are_generated_only_for_print(self):
         sheet = pagecss.page_sheet()
         problems = []

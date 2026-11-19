@@ -590,10 +590,9 @@
     /* Paper gets the plain contact line: no glyphs, '|' between items. It fits one line on
        Letter and A4, so no separator is ever left at a line end. */
     .contact {
-      margin-block-start: 0;
-
       & ul {
         display: block;
+        margin-block-start: 0;
       }
 
       & li,
