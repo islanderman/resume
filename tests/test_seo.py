@@ -12,6 +12,7 @@ from urllib.parse import urlsplit
 
 from resume_kit import elements, htmlfacts, refs, svgcheck
 from resume_kit import headers as hdr
+from resume_kit.profiles import external_profiles, profile_links
 from resume_kit.common import (
     HEADERS_FILE,
     INDEX,
@@ -216,31 +217,8 @@ def site_file(url):
     return refs.resolve(parts.path, PUBLIC)
 
 
-def profile_links(path=INDEX):
-    """Elements for links in the masthead contact block plus every rel="me" link."""
-    return elements.pick_in(
-        path,
-        lambda tag, attrs, parents: tag == "a"
-        and (
-            "me" in attrs.get("rel", "").lower().split()
-            or any("contact" in elements.classes(a) for _, a in parents)
-        ),
-    )
-
-
 def is_own_page(href):
     return refs.norm_link(href) == refs.norm_link(canonical())
-
-
-def external_profiles(path=INDEX):
-    """Normalized off-site http(s) profile links: what Person.sameAs must list."""
-    host = urlsplit(canonical()).hostname
-    return {
-        refs.norm_link(e.attrs.get("href", ""))
-        for e in profile_links(path)
-        if refs.kind(e.attrs.get("href", "")) == "external"
-        and refs.host_of(e.attrs.get("href", "")) != host
-    }
 
 
 def sitemap_tree():

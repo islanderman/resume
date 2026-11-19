@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest import mock
 
 from resume_kit import cloudflare as cf
-from resume_kit import elements, htmlfacts, refs, trackers
+from resume_kit import elements, htmlfacts, profiles, refs, trackers
 
 ADDRESS = "a@b.co"
 
@@ -202,6 +202,24 @@ class ElementPickTest(unittest.TestCase):
             self.HTML, lambda t, a, p: bool(p) and p[-1][1].get("aria-labelledby") == "s"
         )
         self.assertEqual([e.tag for e in under], ["h2", "p"])
+
+
+class ProfileLinksTest(unittest.TestCase):
+    def test_contact_links_and_every_rel_me_link_count_in_any_case(self):
+        html = (
+            '<link rel="ME" href="https://social.example/@j"><link rel="stylesheet" href="/a.css">'
+            '<address class="contact"><ul><li><a href="https://resume.chenyang.us/">site</a></li>'
+            '<li><a href="https://www.linkedin.com/in/x">in</a></li></ul></address>'
+            '<a rel="Me nofollow" href="//blog.example/">blog</a><a href="https://other.example/">x</a>'
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            page = Path(tmp) / "page.html"
+            page.write_text(html, encoding="utf-8")
+            found = profiles.external_profiles(page)
+        self.assertEqual(
+            found,
+            {"https://social.example/@j", "https://www.linkedin.com/in/x", "https://blog.example/"},
+        )
 
 
 class ReferenceKindTest(unittest.TestCase):
