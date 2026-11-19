@@ -32,7 +32,7 @@
 # first. It must name the exact URL index.html loads, on / only: /index.html just redirects to /
 # (tests/test_cache_busting.py).
 /
-  Link: </css/resume.css?v=97971a37>; rel=preload; as=style
+  Link: </css/resume.css?v=2e80de77>; rel=preload; as=style
 
 # Keep the pages.dev hostname out of search results; resume.chenyang.us is canonical.
 https://:project.pages.dev/*

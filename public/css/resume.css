@@ -162,8 +162,6 @@
      */
     --measure-text: 48em;
     --measure: calc(var(--measure-text) + var(--rail));
-    /* Desktop contact rows: room for three items, never four, so the five break 3 + 2. */
-    --measure-contact: 44em;
 
     --target-min: 44px;
     --focus-width: 2px;
@@ -440,8 +438,7 @@
       }
     }
 
-    /* Desktop screens: centered rows at most three items wide, so five break 3 + 2; a wide font
-       still wraps rather than overflows. */
+    /* Desktop screens: one centered row; it wraps rather than overflows if a font runs wide. */
     @media screen and (width >= 64em) {
       margin-block-start: 0;
 
@@ -449,8 +446,6 @@
         display: flex;
         flex-wrap: wrap;
         column-gap: var(--gap-contact);
-        max-inline-size: var(--measure-contact);
-        margin-inline: auto;
       }
     }
   }
