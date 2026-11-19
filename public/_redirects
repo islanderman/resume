@@ -1,0 +1,3 @@
+# Pretty URLs serve 404.html at /404 with status 200. A rewrite to a path with no file sends /404
+# through Pages' not-found handling: the same page, status 404 (tests/test_redirects.py).
+/404 /__no-such-page 200

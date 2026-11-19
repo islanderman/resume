@@ -10,6 +10,7 @@ PUBLIC = ROOT / "public"
 FIXTURES = ROOT / "tests" / "fixtures"
 INDEX = PUBLIC / "index.html"
 HEADERS_FILE = PUBLIC / "_headers"
+REDIRECTS_FILE = PUBLIC / "_redirects"
 ICON_DIR = PUBLIC / "img" / "icons"
 OLD_ORIGIN_HOST = "resume.chenyang.us"
 
