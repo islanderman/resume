@@ -191,12 +191,14 @@ def scan_hits(pattern):
 def llms_problems(text, site, same_as):
     """Why llms.txt fails: an email address, a missing site or profile link, or a URL that is
     neither on the site's host nor in Person.sameAs."""
-    problems = [f"names {m.group(0)!r}" for m in EMAIL.finditer(text)]
+    forms = decoded_forms(text)
+    emails = dict.fromkeys(m.group(0) for form in forms for m in EMAIL.finditer(form))
+    problems = [f"names {email!r}" for email in emails]
     problems += [f"does not link <{url}>" for url in [site] + same_as if f"<{url}>" not in text]
     host = urlsplit(site).hostname
     allowed = {refs.norm_link(url) for url in same_as}
     found = dict.fromkeys(
-        m.group(0).rstrip(".,;:!?*_") for form in decoded_forms(text) for m in URL.finditer(form)
+        m.group(0).rstrip(".,;:!?*_") for form in forms for m in URL.finditer(form)
     )
     for url in found:
         parts = urlsplit(url)
@@ -845,6 +847,7 @@ class LlmsAllowListSelfTest(unittest.TestCase):
             "see https://other.example/x.",
             "<h&#116;tps://evil.example/>",
             "<http://resume.example/>",
+            "Mail: a&#64;b.example",
         ):
             with self.subTest(extra):
                 problems = llms_problems(self.BASE + extra, self.SITE, self.SAME_AS)
