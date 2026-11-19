@@ -425,6 +425,53 @@ class RedirectsParserTest(unittest.TestCase):
         self.assertTrue(any("dynamic" in p for p in rdr.parse(dynamic).problems))
         self.assertEqual(rdr.parse("/p/:id /q\n/r /s\n").problems, [])
 
+    def test_rules_that_loop_through_index_are_dropped(self):
+        # Pages strips /index or .html with a redirect, so these would run again on their target.
+        for text in ("/* /index.html 200\n", "/ /index.html 301\n", "/a/ /b/index 302\n"):
+            with self.subTest(text):
+                parsed = rdr.parse(text)
+                self.assertEqual(parsed.rules, [])
+                self.assertTrue(any("loops" in p for p in parsed.problems), parsed.problems)
+        kept = "/a /index.html 301\n/* https://x.test/index.html 301\n/b/ /c/index.html?x 302\n"
+        self.assertEqual(rdr.parse(kept).problems, [])
+
+    def test_duplicates_compare_the_source_as_pages_normalizes_it(self):
+        dupes = ("/404?x", "/./404", "/x/../404", "/404#f", "/%2e/404", "/404?")
+        parsed = rdr.parse("/404 /a 200\n" + "".join(f"{d} /b\n" for d in dupes) + "/404/ /c\n")
+        self.assertEqual([(r.source, r.line) for r in parsed.rules], [("/404", 1), ("/404/", 8)])
+        self.assertEqual(len([p for p in parsed.problems if "duplicate" in p]), len(dupes))
+
+    def test_an_https_target_needs_a_host(self):
+        for target in ("https://", "https:///"):
+            with self.subTest(target):
+                parsed = rdr.parse(f"/a {target} 301\n")
+                self.assertEqual(parsed.rules, [])
+                self.assertTrue(any("target" in p for p in parsed.problems), parsed.problems)
+        self.assertEqual(rdr.parse("/a https://x.test 301\n").rules[0].target, "https://x.test/")
+
+    def test_line_length_counts_utf16_code_units_like_javascript(self):
+        emoji = "\U0001f600"  # two UTF-16 code units, one Python character
+        self.assertTrue(any("exceeds" in p for p in rdr.parse("/a /" + emoji * 999).problems))
+        self.assertEqual(rdr.parse("/a /" + emoji * 998).problems, [])
+
+    def test_javascript_spaces_and_number_parsing(self):
+        parsed = rdr.parse("\ufeff/a\u00a0/b\u3000301.0\n/c /d \u0663\u0660\u0661\n/e /f 0x12d\n")
+        self.assertEqual([(r.source, r.status) for r in parsed.rules], [("/a", 301), ("/e", 301)])
+        self.assertEqual(len(parsed.problems), 1)  # Arabic-Indic digits are NaN to Number()
+
+    def test_match_tries_exact_static_rules_then_dynamic_rules_in_order(self):
+        shadowed = rdr.parse("/4* /x 301\n/404 /y 200\n")
+        self.assertEqual(rdr.match(shadowed, "/404").source, "/4*")
+        static_first = rdr.parse("/404 /y 200\n/4* /x 301\n")
+        self.assertEqual(rdr.match(static_first, "/404").source, "/404")
+        later = rdr.parse("/p/:id /q\n/404 /y 200\n/:page /z\n")
+        self.assertTrue(later.rules[1].dynamic)  # below a dynamic rule, a plain path waits its turn
+        self.assertEqual(rdr.match(later, "/404").source, "/404")
+        self.assertEqual(rdr.match(later, "/p/7").source, "/p/:id")
+        self.assertEqual(rdr.match(later, "/x").source, "/:page")
+        self.assertIsNone(rdr.match(later, "/a/b"))  # a placeholder never spans a slash
+        self.assertIsNone(rdr.match(rdr.parse("/*/* /q\n/:a/:a /r\n"), "/a/b"))  # JS rejects both
+
 
 class CspTest(unittest.TestCase):
     def test_policies_and_fallback_chain(self):
