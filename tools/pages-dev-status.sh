@@ -18,6 +18,8 @@ free_port() {
 }
 
 port="${PAGES_DEV_PORT:-$(free_port)}"
+inspector_port="$(free_port)"
+while [ "${inspector_port}" = "${port}" ]; do inspector_port="$(free_port)"; done
 base="http://127.0.0.1:${port}"
 log="$(mktemp)"
 pid=''
@@ -52,7 +54,7 @@ if [ "$(code / --max-time 2)" != 000 ]; then
 fi
 
 WRANGLER_SEND_METRICS=false ./node_modules/.bin/wrangler pages dev public \
-  --ip 127.0.0.1 --port "${port}" --inspector-port "$(free_port)" \
+  --ip 127.0.0.1 --port "${port}" --inspector-port "${inspector_port}" \
   --show-interactive-dev-session=false >"${log}" 2>&1 &
 pid=$!
 
